@@ -2,12 +2,15 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 from groq import Groq
 from dotenv import load_dotenv
+from firewall.poison_detector import router as poison_router
 import os
 import json
+
 
 load_dotenv()
 
 app = FastAPI()
+app.include_router(poison_router)
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 MODEL = os.getenv("GROQ_MODEL")
 
