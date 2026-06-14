@@ -7,6 +7,7 @@ import uuid
 
 from database import SessionLocal
 from models import Memory
+from encryption import encrypt, decrypt
 
 app = FastAPI(title="SecureMem Memory API")
 
@@ -39,7 +40,7 @@ def write_memory(req: WriteRequest):
         mem = Memory(
             id=str(uuid.uuid4()),
             agent_id=req.agent_id,
-            content=req.content,
+            content=encrypt(req.content),
             embedding=embedding,
             namespace=req.namespace,
             extra_metadata=req.metadata
@@ -64,7 +65,7 @@ def search_memory(agent_id: str, query: str, namespace: str, top_k: int = 5):
         ).all()
         return {
             "matches": [
-                {"id": m.id, "content": m.content, "agent_id": m.agent_id}
+                {"id": m.id, "content": decrypt(m.content), "agent_id": m.agent_id}
                 for m in results
             ]
         }
