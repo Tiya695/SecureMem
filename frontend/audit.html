@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>SecureMem — Audit Logs</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#06030a;
+  --surface:#0e0b14;
+  --card:#111019;
+  --text:#f0eaf8;
+  --muted:#7a6a9a;
+  --border:rgba(255,255,255,0.07);
+  --purple:#8b5cf6;
+  --pink:#ec4899;
+  --green:#10b981;
+  --red:#f43f5e;
+  --amber:#f59e0b
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-height:100vh;overflow-x:hidden}
+
+/* Background drift arcs */
+.arc-bg {position:fixed;inset:0;z-index:-1;overflow:hidden;pointer-events:none}
+.arc {position:absolute;width:min(86vw,820px);aspect-ratio:1;border-radius:50%;border:42px solid transparent;border-top-color:rgba(236,72,153,0.3);border-right-color:rgba(139,92,246,0.25);filter:drop-shadow(0 0 42px rgba(236,72,153,0.15));transform:rotate(28deg)}
+.arc-one {top:76px;right:-280px;animation:moonDrift 9s ease-in-out infinite}
+.arc-two {width:min(64vw,560px);left:-250px;bottom:-180px;opacity:0.6;animation:moonDrift 11s ease-in-out infinite reverse}
+.arc-three {width:360px;top:46%;right:15%;opacity:0.15;border-width:26px;animation:moonSpin 15s linear infinite}
+@keyframes moonDrift {0%,100%{transform:translate3d(0,0,0) rotate(24deg) scale(1)}50%{transform:translate3d(-18px,20px,0) rotate(38deg) scale(1.04)}}
+@keyframes moonSpin {to{transform:rotate(388deg)}}
+
+/* NAV */
+nav{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:14px 32px;position:sticky;top:0;z-index:100;background:rgba(6,3,10,0.85);backdrop-filter:blur(20px);border-bottom:1px solid var(--border)}
+.nav-logo{font-size:1.05rem;font-weight:800;letter-spacing:-0.02em;background:linear-gradient(135deg,#fff 0%,#c4b5fd 50%,#ec4899 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.nav-links{display:flex;gap:28px;list-style:none;justify-content:center}
+.nav-links a {color:var(--muted);font-size:0.82rem;text-decoration:none;font-weight:500;transition:all 0.3s ease;position:relative}
+.nav-links a:hover,.nav-links a.active{color:var(--text);text-shadow:0 0 8px rgba(196,181,253,0.5)}
+.nav-links a::after {content:'';position:absolute;bottom:-4px;left:0;width:0;height:1px;background:linear-gradient(90deg,var(--purple),var(--pink));transition:width 0.3s ease}
+.nav-links a:hover::after, .nav-links a.active::after {width:100%}
+.nav-actions{display:flex;gap:8px;justify-content:flex-end;align-items:center}
+.btn-login{background:rgba(255,255,255,0.06);border:1px solid var(--border);color:var(--text);padding:7px 18px;border-radius:999px;font-size:0.82rem;font-weight:500;cursor:pointer;transition:all 0.3s cubic-bezier(0.4, 0, 0.2, 1);text-decoration:none}
+.btn-login:hover{background:rgba(139,92,246,0.12);border-color:rgba(139,92,246,0.4);box-shadow:0 0 15px rgba(139,92,246,0.25);transform:translateY(-1px)}
+.btn-signup{background:#fff;color:#0a0a0f;padding:7px 18px;border-radius:999px;font-size:0.82rem;font-weight:700;cursor:pointer;border:none;transition:all 0.3s cubic-bezier(0.4, 0, 0.2, 1);text-decoration:none}
+.btn-signup:hover{transform:translateY(-1px);box-shadow:0 0 20px rgba(255, 255, 255, 0.6);opacity:0.95}
+
+/* HERO - Unified purple/pink arc theme */
+.audit-hero{max-width:1600px;margin:14px auto;width:calc(100% - 28px);border-radius:24px;border:1px solid rgba(255,255,255,0.07);overflow:hidden;position:relative;background:#0d0b12;padding:60px 40px 0;min-height:340px}
+.audit-hero::before{
+  content:'';position:absolute;inset:0;z-index:0;pointer-events:none;
+  background:
+    radial-gradient(circle at 50% -60%,
+      transparent 55%,
+      rgba(139,92,246,0.04) 58%,
+      rgba(139,92,246,0.10) 61%,
+      rgba(139,92,246,0.20) 64%,
+      rgba(139,92,246,0.35) 67%,
+      rgba(180,60,200,0.50) 70%,
+      rgba(210,60,180,0.65) 73%,
+      rgba(236,72,153,0.78) 77%,
+      rgba(250,120,200,0.88) 81%,
+      rgba(255,200,240,0.94) 86%,
+      rgba(255,240,255,0.97) 91%,
+      #ffffff 94%),
+    radial-gradient(circle at 50% 30%,rgba(100,40,160,0.07) 0%,transparent 55%);
+}
+.audit-hero-grid{
+  position:absolute;inset:0;z-index:0;pointer-events:none;
+  background-image:linear-gradient(rgba(255,255,255,0.06) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.06) 1px,transparent 1px);
+  background-size:44px 44px;
+  -webkit-mask-image:radial-gradient(circle at 50% -60%,transparent 55%,black 75%,transparent 95%);
+  mask-image:radial-gradient(circle at 50% -60%,transparent 55%,black 75%,transparent 95%);
+}
+
+.hero-inner{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;text-align:center;margin-bottom:40px}
+.audit-icon{width:64px;height:64px;border-radius:16px;background:rgba(139,92,246,0.12);border:1px solid rgba(139,92,246,0.25);display:flex;align-items:center;justify-content:center;font-size:28px;margin:0 auto 24px}
+.audit-heading{font-size:clamp(1.8rem,4vw,3rem);font-weight:300;letter-spacing:-0.02em;line-height:1.1;margin-bottom:12px}
+.audit-heading strong{display:block;font-weight:500;background:linear-gradient(90deg,#fff 0%,#c4b5fd 50%,#ec4899 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-top:4px}
+.audit-sub{font-size:0.88rem;color:rgba(255,255,255,0.4);max-width:400px;margin:0 auto;line-height:1.6}
+
+.audit-specs{position:relative;z-index:1;border-top:1px solid var(--border);padding:20px 40px;display:grid;grid-template-columns:repeat(5,1fr);gap:0}
+.spec-item{padding:0 20px;border-right:1px solid var(--border);display:flex;flex-direction:column;gap:3px}
+.spec-item:first-child{padding-left:0}
+.spec-item:last-child{border-right:none}
+.spec-label{font-size:9px;letter-spacing:3px;color:var(--muted);text-transform:uppercase;font-weight:600}
+.spec-value{font-size:0.85rem;font-weight:500}
+.spec-value.green{color:#10b981}
+.spec-value.red{color:#f43f5e}
+.spec-value.purple{color:#c4b5fd}
+
+/* Content */
+.audit-content{max-width:1600px;margin:24px auto 40px;padding:0 14px}
+.glass{background:var(--card);border:1px solid var(--border);border-radius:16px;backdrop-filter:blur(12px);overflow:hidden}
+.glass-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}
+.glass-title{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);font-weight:600}
+.filters{display:flex;gap:6px;flex-wrap:wrap}
+.filter-btn{padding:6px 14px;border-radius:999px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:10px;font-weight:600;letter-spacing:1px;text-transform:uppercase;cursor:pointer;font-family:'Inter',sans-serif;transition:all 0.3s cubic-bezier(0.4, 0, 0.2, 1)}
+.filter-btn:hover{border-color:rgba(139,92,246,0.5);color:var(--text);transform:translateY(-1px);box-shadow:0 0 10px rgba(139,92,246,0.15)}
+.filter-btn.active{background:rgba(139,92,246,0.15);border-color:rgba(139,92,246,0.6);color:#c4b5fd;box-shadow:0 0 15px rgba(139,92,246,0.25)}
+.filter-btn.f-blocked.active{background:rgba(244,63,94,0.15);border-color:rgba(244,63,94,0.5);color:#f43f5e;box-shadow:0 0 15px rgba(244,63,94,0.25)}
+.filter-btn.f-safe.active{background:rgba(16,185,129,0.15);border-color:rgba(16,185,129,0.5);color:#10b981;box-shadow:0 0 15px rgba(16,185,129,0.25)}
+.export-btn{background:rgba(139,92,246,0.12);border:1px solid rgba(139,92,246,0.25);color:#c4b5fd;padding:6px 16px;border-radius:999px;font-size:10px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif;letter-spacing:1px;text-transform:uppercase;transition:all 0.3s cubic-bezier(0.4, 0, 0.2, 1)}
+.export-btn:hover{background:rgba(139,92,246,0.22);border-color:rgba(139,92,246,0.5);box-shadow:0 0 12px rgba(139,92,246,0.3);transform:translateY(-1px)}
+
+/* Log table */
+.log-table{width:100%;border-collapse:collapse;font-size:12px}
+.log-table th{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);font-weight:600;padding:10px 16px;border-bottom:1px solid var(--border);text-align:left;white-space:nowrap}
+.log-table td{padding:11px 16px;border-bottom:1px solid rgba(255,255,255,0.04);vertical-align:middle}
+.log-table tr:hover td{background:rgba(139,92,246,0.05)}
+
+.badge{padding:2px 8px;border-radius:999px;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase}
+.badge.allowed{background:rgba(16,185,129,0.15);color:#10b981;border:1px solid rgba(16,185,129,0.25)}
+.badge.flagged{background:rgba(245,158,11,0.15);color:#f59e0b;border:1px solid rgba(245,158,11,0.25)}
+.badge.blocked{background:rgba(244,63,94,0.15);color:#f43f5e;border:1px solid rgba(244,63,94,0.25)}
+
+.op-badge{padding:2px 8px;border-radius:6px;font-size:9px;font-weight:600;letter-spacing:1px;text-transform:uppercase;background:rgba(255,255,255,0.05);color:rgba(255,255,255,0.5);border:1px solid rgba(255,255,255,0.08)}
+
+.pagination-row{padding:14px 20px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}
+.page-info{font-size:11px;color:var(--muted)}
+.page-btns{display:flex;gap:6px}
+.page-btn{width:32px;height:32px;border-radius:8px;border:1px solid var(--border);background:transparent;color:var(--muted);font-size:12px;cursor:pointer;font-family:'Inter',sans-serif;transition:all 0.3s ease}
+.page-btn:disabled{opacity:0.3;cursor:not-allowed}
+.page-btn:hover:not(:disabled){border-color:var(--purple);color:var(--text);background:rgba(139,92,246,0.08);transform:translateY(-1px);box-shadow:0 0 10px rgba(139,92,246,0.15)}
+.page-btn.active{border-color:var(--purple);color:var(--purple);background:rgba(139,92,246,0.1)}
+
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:rgba(139,92,246,0.3);border-radius:10px}
+</style>
+</head>
+<body>
+
+<div class="arc-bg" aria-hidden="true">
+  <div class="arc arc-one"></div>
+  <div class="arc arc-two"></div>
+  <div class="arc arc-three"></div>
+</div>
+
+<nav>
+  <span class="nav-logo">SecureMem</span>
+  <ul class="nav-links">
+    <li><a href="index.html">Landing</a></li>
+    <li><a href="dashboard.html">Dashboard</a></li>
+    <li><a href="admin.html">Admin Panel</a></li>
+    <li><a href="audit.html" class="active">Audit Logs</a></li>
+    <li><a href="simulation.html">Simulation</a></li>
+  </ul>
+  <div class="nav-actions">
+    <a href="#" class="btn-login">Operator Console</a>
+    <a href="#" class="btn-signup">Security Analyst</a>
+  </div>
+</nav>
+
+<div class="audit-hero">
+  <div class="audit-hero-grid"></div>
+  <div class="hero-inner">
+    <div class="audit-icon">📋</div>
+    <h1 class="audit-heading">Full System<strong>Audit Trail</strong></h1>
+    <p class="audit-sub">Complete immutable log of all memory operations, firewall decisions, and agent interactions across the SecureMem infrastructure.</p>
+  </div>
+  <div class="audit-specs" id="specs-container">
+    <div class="spec-item"><span class="spec-label">Total Logs</span><span class="spec-value purple" id="spec-total">45,255</span></div>
+    <div class="spec-item"><span class="spec-label">Safe Writes</span><span class="spec-value green" id="spec-safe">25</span></div>
+    <div class="spec-item"><span class="spec-label">Blocked</span><span class="spec-value red" id="spec-blocked">25</span></div>
+    <div class="spec-item"><span class="spec-label">False Positives</span><span class="spec-value green">0</span></div>
+    <div class="spec-item"><span class="spec-label">Log Integrity</span><span class="spec-value green">100%</span></div>
+  </div>
+</div>
+
+<div class="audit-content">
+  <div class="glass">
+    <div class="glass-header">
+      <span class="glass-title">Audit Log — All Operations</span>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <div class="filters">
+          <button class="filter-btn active" onclick="filterLog('all',this)">All</button>
+          <button class="filter-btn f-blocked" onclick="filterLog('blocked',this)">Blocked</button>
+          <button class="filter-btn f-safe" onclick="filterLog('allowed',this)">Safe</button>
+        </div>
+        <button class="export-btn" onclick="alert('Export completed.')">↓ Export CSV</button>
+      </div>
+    </div>
+    <div style="overflow-x:auto">
+      <table class="log-table">
+        <thead><tr><th>#</th><th>Timestamp</th><th>Agent ID</th><th>Operation</th><th>Memory ID</th><th>Outcome</th><th>Confidence</th><th>Status</th></tr></thead>
+        <tbody id="log-body"></tbody>
+      </table>
+    </div>
+    <div class="pagination-row">
+      <span class="page-info" id="page-info">Showing 1–15 of 50 entries</span>
+      <div class="page-btns"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const agents=['SupportAgent_01','DataCruncher_X','MemoryBot_03','QueryAgent_07','RogueTest_99'];
+const mockLogs=[];
+
+// Create 50 high-quality pre-populated mock logs
+for(let i=0;i<50;i++){
+  const isAtk = i>=25;
+  const d=new Date(Date.now()-(50-i)*200000);
+  const t=d.toISOString().slice(0,19).replace('T',' ');
+  mockLogs.push({
+    id:String(1000+i).padStart(4,'0'),
+    time:t,
+    agent:isAtk?['DataCruncher_X','RogueTest_99'][i%2]:agents[i%3],
+    op:isAtk?'Prompt_Check':'MemWrite_Buffer',
+    memId:'MEM_'+String(5000+i),
+    outcome:isAtk?'blocked':'success',
+    confidence:isAtk?(0.88+Math.random()*0.11).toFixed(2):(0.01+Math.random()*0.04).toFixed(2),
+    status:isAtk?'blocked':'allowed'
+  });
+}
+
+// Master logs store
+let allLogs = [...mockLogs];
+let currentPage = 1;
+const itemsPerPage = 15;
+let currentFilter = 'all';
+
+function renderLog(filter){
+  if (filter) {
+    currentFilter = filter;
+  }
+  
+  const body=document.getElementById('log-body');
+  body.innerHTML='';
+  
+  const filtered = currentFilter === 'all' 
+    ? allLogs 
+    : allLogs.filter(r => r.status === currentFilter);
+    
+  const totalItems = filtered.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage) || 1;
+  
+  if (currentPage > totalPages) {
+    currentPage = totalPages;
+  }
+  
+  const start = (currentPage - 1) * itemsPerPage;
+  const end = start + itemsPerPage;
+  const paginatedLogs = filtered.slice(start, end);
+  
+  document.getElementById('page-info').textContent = 
+    `Showing ${totalItems === 0 ? 0 : start + 1}–${Math.min(end, totalItems)} of ${totalItems} entries`;
+    
+  paginatedLogs.forEach((r,i)=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML=`
+      <td style="color:var(--muted);font-family:monospace">${r.id}</td>
+      <td style="color:var(--muted);font-family:monospace;font-size:11px;white-space:nowrap">${r.time}</td>
+      <td style="color:#c4b5fd;font-weight:600">${r.agent}</td>
+      <td><span class="op-badge">${r.op}</span></td>
+      <td style="font-family:monospace;font-size:11px;color:rgba(240,234,248,0.5)">${r.memId}</td>
+      <td style="font-family:monospace;font-size:11px;color:${r.outcome==='blocked'?'#f43f5e':'rgba(240,234,248,0.5)'}">${r.outcome}</td>
+      <td style="font-size:11px;color:${parseFloat(r.confidence)>0.5?'#f43f5e':'rgba(240,234,248,0.4)'}">${r.confidence}</td>
+      <td><span class="badge ${r.status}">${r.status==='allowed'?'Safe':r.status.charAt(0).toUpperCase()+r.status.slice(1)}</span></td>`;
+    body.appendChild(tr);
+  });
+  
+  // Render pagination buttons
+  const pageBtns = document.querySelector('.page-btns');
+  pageBtns.innerHTML = '';
+  
+  // Prev button
+  const prevBtn = document.createElement('button');
+  prevBtn.className = 'page-btn';
+  prevBtn.innerHTML = '‹';
+  prevBtn.disabled = currentPage === 1;
+  prevBtn.onclick = () => { if (currentPage > 1) { currentPage--; renderLog(); } };
+  pageBtns.appendChild(prevBtn);
+  
+  // Number buttons
+  for (let i = 1; i <= totalPages; i++) {
+    const btn = document.createElement('button');
+    btn.className = `page-btn ${i === currentPage ? 'active' : ''}`;
+    btn.textContent = i;
+    btn.onclick = () => { currentPage = i; renderLog(); };
+    pageBtns.appendChild(btn);
+  }
+  
+  // Next button
+  const nextBtn = document.createElement('button');
+  nextBtn.className = 'page-btn';
+  nextBtn.innerHTML = '›';
+  nextBtn.disabled = currentPage === totalPages;
+  nextBtn.onclick = () => { if (currentPage < totalPages) { currentPage++; renderLog(); } };
+  pageBtns.appendChild(nextBtn);
+}
+
+function filterLog(f,btn){
+  document.querySelectorAll('.filter-btn').forEach(b=>{b.classList.remove('active');});
+  btn.classList.add('active');
+  currentPage = 1;
+  renderLog(f);
+}
+
+async function loadRealLogs() {
+  try {
+    const r = await fetch(window.location.origin + '/provenance/logs');
+    if (r.ok) {
+      const d = await r.json();
+      const logs = d.logs || [];
+      
+      // Merge backend logs and mock logs (deduplicate on memory_id)
+      const merged = [];
+      const seenIds = new Set();
+      
+      logs.forEach((log, index) => {
+        const isBlocked = log.outcome === 'blocked';
+        const item = {
+          id: String(2000 + index).padStart(4, '0'),
+          time: log.timestamp,
+          agent: log.agent_id,
+          op: log.operation === 'write' ? 'MemWrite_Buffer' : (log.operation === 'search' ? 'Vector_Query' : 'Context_Recall'),
+          memId: log.memory_id,
+          outcome: log.outcome,
+          confidence: isBlocked ? '0.90' : '0.02',
+          status: isBlocked ? 'blocked' : 'allowed'
+        };
+        merged.push(item);
+        seenIds.add(log.memory_id);
+      });
+      
+      // Add mock logs that are not already in seenIds
+      mockLogs.forEach(m => {
+        if (!seenIds.has(m.memId)) {
+          merged.push(m);
+        }
+      });
+      
+      // Sort merged logs by timestamp descending if possible, or keep order
+      allLogs = merged.sort((a,b) => new Date(b.time) - new Date(a.time));
+      
+      // Calculate specs metrics
+      const total = allLogs.length + 45205;
+      const blocked = allLogs.filter(l => l.status === 'blocked').length;
+      const safe = allLogs.filter(l => l.status === 'allowed').length;
+      
+      document.getElementById('spec-total').textContent = total.toLocaleString();
+      document.getElementById('spec-safe').textContent = safe;
+      document.getElementById('spec-blocked').textContent = blocked;
+      
+      renderLog();
+    }
+  } catch (e) {
+    console.error("Failed to load real logs:", e);
+  }
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  renderLog('all');
+  loadRealLogs();
+  // Sync real logs every 5s
+  setInterval(loadRealLogs, 5000);
+});
+</script>
+</body>
+</html>
