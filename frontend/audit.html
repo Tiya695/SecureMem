@@ -298,7 +298,7 @@ function filterLog(f,btn){
 
 async function loadRealLogs() {
   try {
-    const r = await fetch(window.location.origin + '/provenance/logs');
+    const r = await fetch("http://localhost:8000" + '/provenance/logs');
     if (r.ok) {
       const d = await r.json();
       const logs = d.logs || [];

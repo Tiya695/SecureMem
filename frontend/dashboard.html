@@ -582,7 +582,7 @@ setInterval(addRow,2500);
 // BACKEND SYNC
 async function sync(){
   try{
-    const r=await fetch(window.location.origin + '/provenance/logs');
+    const r=await fetch("http://localhost:8000" + '/provenance/logs');
     if(!r.ok)throw new Error();
     const d=await r.json();
     const logs=d.logs||[];

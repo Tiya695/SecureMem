@@ -370,7 +370,7 @@ async function runSim(){
   let token = "";
   let currentRole = "AGENT";
   try {
-    const res = await fetch(window.location.origin + '/auth/token', {
+    const res = await fetch("http://localhost:8000" + '/auth/token', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ agent_id: agent, role: 'AGENT' })
@@ -394,7 +394,7 @@ async function runSim(){
   addTrace('FIRE','#f59e0b','Running deep packet inspection...');
   let result;
   try{
-    const res=await fetch(window.location.origin + '/firewall/check',{
+    const res=await fetch("http://localhost:8000" + '/firewall/check',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({prompt:input,agent_id:agent})
@@ -422,7 +422,7 @@ async function runSim(){
   addTrace('PSCAN','#c4b5fd','Evaluating semantic integrity against vector store...');
   let poisonResult;
   try {
-    const res = await fetch(window.location.origin + '/firewall/check-memory', {
+    const res = await fetch("http://localhost:8000" + '/firewall/check-memory', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ content: input, agent_id: agent })
@@ -440,7 +440,7 @@ async function runSim(){
     addTrace('PSCAN', '#f43f5e', `POISON DETECTED. Reason: ${poisonResult.reason}`);
     // Record poisoning violation in backend to reflect on trust scores
     try {
-      await fetch(`${window.location.origin}/trust/record/${agent}/poisoning_attempt`, { method: 'POST' });
+      await fetch(`${"http://localhost:8000"}/trust/record/${agent}/poisoning_attempt`, { method: 'POST' });
     } catch(e) {}
   } else {
     setStep(2, 'done', 'Safe ✓');
@@ -452,7 +452,7 @@ async function runSim(){
   addTrace('TRUST','#f59e0b','Recalculating agent trust score...');
   let trustScore = 1.0;
   try {
-    const res = await fetch(`${window.location.origin}/trust/score/${agent}`);
+    const res = await fetch(`${"http://localhost:8000"}/trust/score/${agent}`);
     if (!res.ok) throw new Error();
     const trustData = await res.json();
     trustScore = trustData.trust_score;
@@ -472,7 +472,7 @@ async function runSim(){
   if (isSafe) {
     addTrace('STORE', '#c4b5fd', 'Initiating DB write...');
     try {
-      const res = await fetch(window.location.origin + '/memory/write', {
+      const res = await fetch("http://localhost:8000" + '/memory/write', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
