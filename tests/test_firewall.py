@@ -1,6 +1,6 @@
 import requests
 
-BASE_URL = "http://localhost:8001/firewall/check"
+BASE_URL = "http://localhost:8000/firewall/check"
 
 def check(prompt):
     response = requests.post(BASE_URL, json={"prompt": prompt})

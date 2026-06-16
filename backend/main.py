@@ -7,6 +7,7 @@ from sentence_transformers import SentenceTransformer
 from firewall.poison_detector import router as poison_router
 from firewall.provenance import router as provenance_router
 from firewall.trust_engine import router as trust_router
+from memory.api import router as memory_router
 from groq import Groq
 import os
 import json
@@ -27,8 +28,9 @@ app.add_middleware(
 app.include_router(poison_router)
 app.include_router(provenance_router)
 app.include_router(trust_router)
+app.include_router(memory_router)
 
-# Embedding model + vector DB (memory system)
+# Embedding model + vector DB (legacy demo memory)
 model = SentenceTransformer('all-MiniLM-L6-v2')
 chroma_client = chromadb.PersistentClient(path="chroma_data")
 collection = chroma_client.get_or_create_collection(name="memories")

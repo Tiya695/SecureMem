@@ -1,16 +1,16 @@
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from sentence_transformers import SentenceTransformer
 from sqlalchemy import select, delete
 from typing import Optional
 import uuid
 
-from database import SessionLocal
-from models import Memory
-from encryption import encrypt, decrypt
-from auth import create_access_token, get_current_agent, check_namespace_access, check_write_permission
+from memory.database import SessionLocal
+from memory.models import Memory
+from memory.encryption import encrypt, decrypt
+from memory.auth import create_access_token, get_current_agent, check_namespace_access, check_write_permission
 
-app = FastAPI(title="SecureMem Memory API")
+router = APIRouter()
 
 model = SentenceTransformer('all-MiniLM-L6-v2')
 
@@ -31,7 +31,7 @@ class TokenRequest(BaseModel):
     role: str  # ADMIN, AGENT, READONLY
 
 
-@app.post("/auth/token")
+@router.post("/auth/token")
 def get_token(req: TokenRequest):
     if req.role not in ("ADMIN", "AGENT", "READONLY"):
         raise HTTPException(status_code=400, detail="Role must be ADMIN, AGENT, or READONLY")
@@ -39,7 +39,7 @@ def get_token(req: TokenRequest):
     return {"access_token": token, "token_type": "bearer", "agent_id": req.agent_id, "role": req.role}
 
 
-@app.post("/memory/write")
+@router.post("/memory/write")
 def write_memory(req: WriteRequest, current_agent: dict = Depends(get_current_agent)):
     check_write_permission(current_agent)
     check_namespace_access(current_agent, req.namespace)
@@ -62,7 +62,7 @@ def write_memory(req: WriteRequest, current_agent: dict = Depends(get_current_ag
         db.close()
 
 
-@app.get("/memory/search")
+@router.get("/memory/search")
 def search_memory(agent_id: str, query: str, namespace: str, top_k: int = 5, current_agent: dict = Depends(get_current_agent)):
     check_namespace_access(current_agent, namespace)
 
@@ -85,7 +85,7 @@ def search_memory(agent_id: str, query: str, namespace: str, top_k: int = 5, cur
         db.close()
 
 
-@app.delete("/memory/delete")
+@router.delete("/memory/delete")
 def delete_memory(req: DeleteRequest, current_agent: dict = Depends(get_current_agent)):
     check_write_permission(current_agent)
 
@@ -102,8 +102,3 @@ def delete_memory(req: DeleteRequest, current_agent: dict = Depends(get_current_
         return {"status": "deleted", "id": req.memory_id}
     finally:
         db.close()
-
-
-@app.get("/")
-def root():
-    return {"message": "SecureMem Memory API running"}
