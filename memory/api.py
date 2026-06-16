@@ -3,7 +3,9 @@ from pydantic import BaseModel
 from sentence_transformers import SentenceTransformer
 from sqlalchemy import select, delete
 from typing import Optional
+from datetime import datetime
 import uuid
+import httpx
 
 from memory.database import SessionLocal
 from memory.models import Memory
@@ -13,6 +15,19 @@ from memory.auth import create_access_token, get_current_agent, check_namespace_
 router = APIRouter()
 
 model = SentenceTransformer('all-MiniLM-L6-v2')
+
+
+def log_provenance(operation: str, memory_id: str, agent_id: str, outcome: str):
+    """Best-effort call to the provenance logger. Never breaks the main request if it fails."""
+    try:
+        httpx.post("http://127.0.0.1:8000/provenance/log", json={
+            "operation": operation,
+            "memory_id": memory_id,
+            "agent_id": agent_id,
+            "outcome": outcome
+        }, timeout=2.0)
+    except Exception:
+        pass
 
 
 class WriteRequest(BaseModel):
@@ -57,6 +72,7 @@ def write_memory(req: WriteRequest, current_agent: dict = Depends(get_current_ag
         )
         db.add(mem)
         db.commit()
+        log_provenance("write", mem.id, req.agent_id, "success")
         return {"status": "stored", "id": mem.id}
     finally:
         db.close()
@@ -99,6 +115,7 @@ def delete_memory(req: DeleteRequest, current_agent: dict = Depends(get_current_
 
         db.execute(delete(Memory).where(Memory.id == req.memory_id))
         db.commit()
+        log_provenance("delete", req.memory_id, current_agent["agent_id"], "success")
         return {"status": "deleted", "id": req.memory_id}
     finally:
         db.close()

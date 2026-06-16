@@ -109,3 +109,29 @@ def get_trust_score(agent_id: str):
             "total_actions": agent["total_actions"]
         }
     }
+
+@router.get("/trust/all")
+def get_all_agents():
+    """Returns trust scores and stats for every known agent — used by the dashboard."""
+    agents = []
+    for agent_id in agent_history:
+        score = calculate_trust_score(agent_id)
+        agent = agent_history[agent_id]
+        agents.append({
+            "agent_id": agent_id,
+            "trust_score": score,
+            "role": agent["role"],
+            "injection_attempts": agent["injection_attempts"],
+            "poisoning_attempts": agent["poisoning_attempts"],
+            "total_actions": agent["total_actions"]
+        })
+
+    total_attacks = sum(a["injection_attempts"] + a["poisoning_attempts"] for a in agents)
+    avg_trust = round(sum(a["trust_score"] for a in agents) / len(agents), 2) if agents else 1.0
+
+    return {
+        "agents": agents,
+        "total_agents": len(agents),
+        "total_attacks_intercepted": total_attacks,
+        "average_trust_score": avg_trust
+    }
