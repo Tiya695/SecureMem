@@ -5,7 +5,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "sdk"))
 import pytest
 from securemem_sdk import SecureMemClient, AccessDeniedError
 
-BASE_URL = "http://127.0.0.1:8002"
+BASE_URL = "http://127.0.0.1:8000"
 
 
 def test_sdk_write_and_search():

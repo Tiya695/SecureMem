@@ -388,15 +388,20 @@ nav{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:1
 })();
 
 // COUNTERS
+const activeCounterTimers = {};
 function animateCounter(id, target, isFloat, duration){
   const el = document.getElementById(id);
   if(!el) return;
-  let current = 0;
+  if(activeCounterTimers[id]) clearInterval(activeCounterTimers[id]);
+  let current = parseFloat(el.textContent.replace(/,/g, '')) || 0;
   const steps = 60;
-  const inc = target/steps;
-  const timer = setInterval(()=>{
+  const inc = (target - current) / steps;
+  activeCounterTimers[id] = setInterval(()=>{
     current += inc;
-    if(current>=target){current=target;clearInterval(timer);}
+    if((inc >= 0 && current >= target) || (inc < 0 && current <= target)){
+      current = target;
+      clearInterval(activeCounterTimers[id]);
+    }
     el.textContent = isFloat ? current.toFixed(2) : Math.round(current).toLocaleString();
   }, duration/steps);
 }
@@ -582,20 +587,28 @@ setInterval(addRow,2500);
 // BACKEND SYNC
 async function sync(){
   try{
-    const r=await fetch("http://localhost:8000" + '/provenance/logs');
-    if(!r.ok)throw new Error();
-    const d=await r.json();
-    const logs=d.logs||[];
-    const blocked=logs.filter(l=>l.outcome==='blocked').length;
-    const safe=logs.filter(l=>l.outcome==='success'&&l.operation==='write').length;
-    animateCounter('cnt-attacks',Math.max(blocked,25),false,800);
-    animateCounter('cnt-trust',0.84,true,800);
-    animateCounter('cnt-memories',Math.max(safe+45180,45205),false,800);
-    animateCounter('cnt-f1',1.00,true,800);
+    const [trustRes, logsRes] = await Promise.all([
+      fetch("http://localhost:8000/trust/all"),
+      fetch("http://localhost:8000/provenance/logs")
+    ]);
+    if(!trustRes.ok || !logsRes.ok) throw new Error();
+
+    const trustData = await trustRes.json();
+    const logsData = await logsRes.json();
+    const logs = logsData.logs || [];
+
+    const safeMemories = logs.filter(l => l.outcome === 'success' && l.operation === 'write').length;
+    const totalAttacks = trustData.total_attacks_intercepted || 0;
+    const avgTrust = trustData.total_agents > 0 ? trustData.average_trust_score : 1.0;
+
+    animateCounter('cnt-attacks', totalAttacks, false, 800);
+    animateCounter('cnt-trust', avgTrust, true, 800);
+    animateCounter('cnt-memories', safeMemories, false, 800);
+    animateCounter('cnt-f1', 1.00, true, 800);
   }catch{
-    animateCounter('cnt-attacks',25,false,1200);
-    animateCounter('cnt-trust',0.84,true,1200);
-    animateCounter('cnt-memories',45205,false,1200);
+    animateCounter('cnt-attacks',0,false,1200);
+    animateCounter('cnt-trust',1.00,true,1200);
+    animateCounter('cnt-memories',0,false,1200);
     animateCounter('cnt-f1',1.00,true,1200);
   }
 }
