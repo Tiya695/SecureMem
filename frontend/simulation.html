@@ -383,10 +383,9 @@ async function runSim(){
     setStep(0,'done','Verified ✓');
     addTrace('AUTH','#10b981','Identity verified. JWT Token obtained.');
   } catch(err) {
-    setStep(0,'fail','AUTH ERROR ✗');
-    addTrace('AUTH','#f43f5e','Authentication failed. Cannot contact credentials endpoint.');
-    btn.disabled=false; btn.textContent='⚡ Execute Simulation';
-    return;
+    // auth bypassed - continue to firewall
+    addTrace('AUTH','#a78bfa','Demo mode: JWT bypassed. Proceeding to firewall.');
+    setStep(0,'done','BYPASSED ✓');
   }
 
   // Step 1 Firewall - real API call
