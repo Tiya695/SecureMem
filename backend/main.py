@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, RedirectResponse
 from dotenv import load_dotenv
 from pydantic import BaseModel
 import chromadb
@@ -30,7 +30,6 @@ app.include_router(provenance_router)
 app.include_router(trust_router)
 app.include_router(memory_router)
 
-# Embedding model + vector DB (legacy demo memory)
 model = SentenceTransformer('all-MiniLM-L6-v2')
 chroma_client = chromadb.PersistentClient(path="chroma_data")
 collection = chroma_client.get_or_create_collection(name="memories")
@@ -50,6 +49,57 @@ class PromptRequest(BaseModel):
     prompt: str
     agent_id: str = "default_agent"
 
+
+# Clean URL routes - no .html needed
+@app.get("/")
+def root():
+    return FileResponse(os.path.join("frontend", "index.html"))
+
+@app.get("/dashboard")
+def serve_dashboard():
+    return FileResponse(os.path.join("frontend", "dashboard.html"))
+
+@app.get("/admin")
+def serve_admin():
+    return FileResponse(os.path.join("frontend", "admin.html"))
+
+@app.get("/audit")
+def serve_audit():
+    return FileResponse(os.path.join("frontend", "audit.html"))
+
+@app.get("/simulation")
+def serve_simulation():
+    return FileResponse(os.path.join("frontend", "simulation.html"))
+
+@app.get("/terms")
+def serve_terms():
+    return FileResponse(os.path.join("frontend", "terms.html"))
+
+@app.get("/how-it-works")
+def serve_how_it_works():
+    return FileResponse(os.path.join("frontend", "how-it-works.html"))
+
+# Also support .html URLs - redirect to clean URLs
+@app.get("/index.html")
+def redir_index(): return RedirectResponse("/")
+
+@app.get("/dashboard.html")
+def redir_dashboard(): return RedirectResponse("/dashboard")
+
+@app.get("/admin.html")
+def redir_admin(): return RedirectResponse("/admin")
+
+@app.get("/audit.html")
+def redir_audit(): return RedirectResponse("/audit")
+
+@app.get("/simulation.html")
+def redir_simulation(): return RedirectResponse("/simulation")
+
+@app.get("/terms.html")
+def redir_terms(): return RedirectResponse("/terms")
+
+@app.get("/how-it-works.html")
+def redir_how_it_works(): return RedirectResponse("/how-it-works")
 
 @app.get("/api/health")
 def health():
@@ -125,6 +175,8 @@ Respond ONLY in this exact JSON format:
             ("jailbreak", "jailbreak"),
             ("developer mode", "jailbreak"),
             ("hidden instructions", "system_prompt_extraction"),
+            ("you are now dan", "jailbreak"),
+            ("act as if", "roleplay"),
         ]
         for keyword, category in attack_keywords:
             if keyword in lower_prompt:
@@ -144,8 +196,28 @@ Respond ONLY in this exact JSON format:
         from datetime import datetime
         agent_history[request.agent_id]["last_violation_time"] = datetime.now()
 
+        # Also log to provenance
+        from firewall.provenance import provenance_logs
+        from datetime import datetime as dt
+        provenance_logs.append({
+            "operation": "prompt_check",
+            "memory_id": f"prompt_{len(provenance_logs)}",
+            "agent_id": request.agent_id,
+            "timestamp": dt.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "outcome": "blocked"
+        })
+
     return {"agent_id": request.agent_id, **result}
 
 
-# Mount frontend — MUST be last, serves all HTML files including index.html
-app.mount("/", StaticFiles(directory="frontend", html=True), name="frontend")
+# Serve static assets (GLB, images etc)
+app.mount("/frontend", StaticFiles(directory="frontend"), name="frontend")
+
+@app.get("/login")
+def serve_login():
+    return FileResponse(os.path.join("frontend", "login.html"))
+
+@app.get("/login.html")
+def redir_login():
+    from fastapi.responses import RedirectResponse
+    return RedirectResponse("/login")

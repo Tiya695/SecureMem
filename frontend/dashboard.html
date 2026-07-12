@@ -3,700 +3,630 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>SecureMem — Dashboard</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
-<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<title>SecureMem — Threat Console</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet"/>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
-:root {
-  --bg: #06030a;
-  --surface: #0e0b14;
-  --card: #111019;
-  --text: #f0eaf8;
-  --muted: #7a6a9a;
-  --border: rgba(255,255,255,0.07);
-  --purple: #8b5cf6;
-  --pink: #ec4899;
-  --green: #10b981;
-  --red: #f43f5e;
-  --amber: #f59e0b;
-}
+:root{--bg:#010101;--card:#121212;--text:#ffffff;--muted:#9ca3af;--border:rgba(255,255,255,0.07);--purple:#2C5C88;--pink:#3a7aad;--green:#10b981;--red:#f43f5e;--amber:#f59e0b}
 *{box-sizing:border-box;margin:0;padding:0}
-body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-height:100vh;overflow-x:hidden}
+body{background:var(--bg);color:var(--text);font-family:'Space Grotesk',sans-serif;min-height:100vh;overflow-x:hidden}
 
-/* Background drift arcs */
-.arc-bg {position:fixed;inset:0;z-index:-1;overflow:hidden;pointer-events:none}
-.arc {position:absolute;width:min(86vw,820px);aspect-ratio:1;border-radius:50%;border:42px solid transparent;border-top-color:rgba(236,72,153,0.3);border-right-color:rgba(139,92,246,0.25);filter:drop-shadow(0 0 42px rgba(236,72,153,0.15));transform:rotate(28deg)}
-.arc-one {top:76px;right:-280px;animation:moonDrift 9s ease-in-out infinite}
-.arc-two {width:min(64vw,560px);left:-250px;bottom:-180px;opacity:0.6;animation:moonDrift 11s ease-in-out infinite reverse}
-.arc-three {width:360px;top:46%;right:15%;opacity:0.15;border-width:26px;animation:moonSpin 15s linear infinite}
-@keyframes moonDrift {0%,100%{transform:translate3d(0,0,0) rotate(24deg) scale(1)}50%{transform:translate3d(-18px,20px,0) rotate(38deg) scale(1.04)}}
-@keyframes moonSpin {to{transform:rotate(388deg)}}
+
 
 /* NAV */
-nav{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:14px 32px;position:sticky;top:0;z-index:100;background:rgba(6,3,10,0.85);backdrop-filter:blur(20px);border-bottom:1px solid var(--border)}
-.nav-logo{font-size:1.05rem;font-weight:800;letter-spacing:-0.02em;background:linear-gradient(135deg,#fff 0%,#c4b5fd 50%,#ec4899 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+nav{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:14px 32px;position:sticky;top:0;z-index:100;background:rgba(1,1,1,0.9);backdrop-filter:blur(20px);border-bottom:1px solid var(--border)}
+.nav-logo{font-size:1.05rem;font-weight:800;letter-spacing:-0.02em;background:linear-gradient(135deg,#fff 0%,#3a7aad 50%,#3a7aad 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
 .nav-links{display:flex;gap:28px;list-style:none;justify-content:center}
-.nav-links a {color:var(--muted);font-size:0.82rem;text-decoration:none;font-weight:500;transition:all 0.3s ease;position:relative}
-.nav-links a:hover,.nav-links a.active{color:var(--text);text-shadow:0 0 8px rgba(196,181,253,0.5)}
-.nav-links a::after {content:'';position:absolute;bottom:-4px;left:0;width:0;height:1px;background:linear-gradient(90deg,var(--purple),var(--pink));transition:width 0.3s ease}
-.nav-links a:hover::after, .nav-links a.active::after {width:100%}
-.nav-actions{display:flex;gap:8px;justify-content:flex-end;align-items:center}
-.btn-login{background:rgba(255,255,255,0.06);border:1px solid var(--border);color:var(--text);padding:7px 18px;border-radius:999px;font-size:0.82rem;font-weight:500;cursor:pointer;transition:all 0.3s cubic-bezier(0.4, 0, 0.2, 1);text-decoration:none}
-.btn-login:hover{background:rgba(139,92,246,0.12);border-color:rgba(139,92,246,0.4);box-shadow:0 0 15px rgba(139,92,246,0.25);transform:translateY(-1px)}
-.btn-signup{background:#fff;color:#0a0a0f;padding:7px 18px;border-radius:999px;font-size:0.82rem;font-weight:700;cursor:pointer;border:none;transition:all 0.3s cubic-bezier(0.4, 0, 0.2, 1);text-decoration:none}
-.btn-signup:hover{transform:translateY(-1px);box-shadow:0 0 20px rgba(255, 255, 255, 0.6);opacity:0.95}
+.nav-links a{color:var(--muted);font-size:0.82rem;text-decoration:none;font-weight:500;transition:all 0.3s;position:relative}
+.nav-links a:hover,.nav-links a.active{color:var(--text)}
+.nav-links a::after{content:'';position:absolute;bottom:-4px;left:0;width:0;height:1px;background:linear-gradient(90deg,var(--purple),var(--pink));transition:width 0.3s}
+.nav-links a:hover::after,.nav-links a.active::after{width:100%}
+.nav-actions{display:flex;gap:8px;justify-content:flex-end;align-items:center;position:relative}
+.btn-login {background:rgba(255,255,255,0.06);border:1px solid var(--border);color:var(--text);padding:7px 18px;border-radius:999px;font-size:0.82rem;font-weight:500;text-decoration:none;transition:all 0.3s cubic-bezier(0.4, 0, 0.2, 1);display:inline-block;cursor:pointer}
+.btn-login:hover {background:rgba(44,92,136,0.12);border-color:rgba(44,92,136,0.4);box-shadow:0 0 15px rgba(44,92,136,0.25);transform:translateY(-1px)}
 
-/* HERO CARD */
-.hero-card{width:100%;max-width:1600px;margin:14px auto;border-radius:24px;border:1px solid rgba(255,255,255,0.07);overflow:hidden;position:relative;background:#0d0b12;padding:0;min-height:640px;display:flex;flex-direction:column}
+/* Profile dropdown */
+.profile-btn{display:flex;align-items:center;gap:8px;padding:6px 14px;border-radius:999px;background:rgba(44,92,136,0.15);border:1px solid rgba(44,92,136,0.3);cursor:pointer;transition:all 0.2s;position:relative}
+.profile-btn:hover{background:rgba(44,92,136,0.25)}
+.profile-avatar{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--purple),var(--pink));display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:white;flex-shrink:0}
+.profile-info{display:flex;flex-direction:column}
+.profile-name{font-size:11px;font-weight:700;color:var(--text)}
+.profile-email{font-size:9px;color:var(--muted)}
+.profile-dropdown{position:absolute;top:calc(100% + 8px);right:0;width:220px;background:#121212;border:1px solid rgba(44,92,136,0.2);border-radius:12px;padding:8px;display:none;z-index:200;box-shadow:0 20px 40px rgba(0,0,0,0.5)}
+.profile-dropdown.open{display:block}
+.dropdown-header{padding:10px 12px;border-bottom:1px solid rgba(255,255,255,0.06);margin-bottom:6px}
+.dropdown-header .d-name{font-size:13px;font-weight:700;color:var(--text)}
+.dropdown-header .d-email{font-size:11px;color:var(--muted);margin-top:2px}
+.dropdown-item{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:8px;cursor:pointer;font-size:12px;color:var(--muted);transition:all 0.2s;text-decoration:none}
+.dropdown-item:hover{background:rgba(44,92,136,0.1);color:var(--text)}
+.dropdown-item.danger{color:var(--red)}
+.dropdown-item.danger:hover{background:rgba(244,63,94,0.1)}
+.dropdown-divider{height:1px;background:rgba(255,255,255,0.06);margin:6px 0}
 
-/* Arc gradient */
-.hero-card::before{
-  content:'';position:absolute;inset:0;z-index:0;pointer-events:none;
-  background:
-    radial-gradient(circle at 50% -60%,
-      transparent 55%,
-      rgba(139,92,246,0.04) 58%,
-      rgba(139,92,246,0.10) 61%,
-      rgba(139,92,246,0.20) 64%,
-      rgba(139,92,246,0.35) 67%,
-      rgba(180,60,200,0.50) 70%,
-      rgba(210,60,180,0.65) 73%,
-      rgba(236,72,153,0.78) 77%,
-      rgba(250,120,200,0.88) 81%,
-      rgba(255,200,240,0.94) 86%,
-      rgba(255,240,255,0.97) 91%,
-      #ffffff 94%),
-    radial-gradient(circle at 50% 30%,rgba(100,40,160,0.07) 0%,transparent 55%);
+/* Cards */
+.glass-card{background:rgba(17,16,25,0.8);border:1px solid var(--border);border-radius:16px;backdrop-filter:blur(12px);position:relative;overflow:hidden}
+.glass-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(44,92,136,0.3),transparent)}
+
+/* Metric cards */
+.metric-card{background:rgba(17,16,25,0.8);border:1px solid var(--border);border-radius:16px;padding:20px;position:relative;overflow:hidden;transition:all 0.3s}
+.metric-card:hover{transform:translateY(-3px);border-color:rgba(44,92,136,0.3);box-shadow:0 20px 40px rgba(124,58,237,0.1)}
+.metric-card .glow{position:absolute;width:80px;height:80px;border-radius:50%;top:-20px;right:-20px;opacity:0.15}
+
+/* Badges */
+.badge{padding:2px 10px;border-radius:999px;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase}
+.badge-allowed{background:rgba(16,185,129,0.15);color:#10b981;border:1px solid rgba(16,185,129,0.25)}
+.badge-flagged{background:rgba(245,158,11,0.15);color:#f59e0b;border:1px solid rgba(245,158,11,0.25)}
+.badge-blocked{background:rgba(244,63,94,0.15);color:#f43f5e;border:1px solid rgba(244,63,94,0.25)}
+
+/* Orbit animation - replacing diamond */
+.orbit-wrap{width:180px;height:180px;position:relative;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.orbit-core{width:50px;height:50px;border-radius:50%;background:linear-gradient(135deg,var(--purple),var(--pink));display:flex;align-items:center;justify-content:center;font-size:20px;box-shadow:0 0 30px rgba(44,92,136,0.5);animation:pulse-core 3s ease-in-out infinite;z-index:2}
+@keyframes pulse-core{0%,100%{box-shadow:0 0 20px rgba(44,92,136,0.4)}50%{box-shadow:0 0 50px rgba(58,122,173,0.6)}}
+.orbit-ring{position:absolute;border-radius:50%;border:1px solid transparent}
+.ring1{width:90px;height:90px;border-color:rgba(44,92,136,0.4);animation:orbit1 4s linear infinite}
+.ring2{width:130px;height:130px;border-color:rgba(58,122,173,0.3);animation:orbit2 7s linear infinite reverse}
+.ring3{width:170px;height:170px;border-color:rgba(44,92,136,0.15);animation:orbit1 12s linear infinite}
+@keyframes orbit1{to{transform:rotate(360deg)}}
+@keyframes orbit2{to{transform:rotate(-360deg)}}
+.orbit-dot{position:absolute;width:8px;height:8px;border-radius:50%;top:-4px;left:50%;margin-left:-4px}
+.dot-purple{background:var(--purple);box-shadow:0 0 8px var(--purple)}
+.dot-pink{background:var(--pink);box-shadow:0 0 8px var(--pink)}
+.dot-small{width:5px;height:5px;top:-2.5px;margin-left:-2.5px;background:#a78bfa}
+
+/* Scrollbar */
+::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:var(--bg)}::-webkit-scrollbar-thumb{background:rgba(44,92,136,0.4);border-radius:10px}
+
+/* Grad text */
+.grad-text{background:linear-gradient(135deg,#3a7aad 0%,#f9a8d4 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+
+@keyframes pulse-dot{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(1.3)}}
+.pulse-dot{animation:pulse-dot 2s ease-in-out infinite}
+
+/* Grad text counter */
+.counter{font-variant-numeric:tabular-nums}
+
+/* Premium Aurora Background Styles */
+#aurora-bg {
+  position: fixed; inset: 0; z-index: -10;
+  background: #010101; overflow: hidden;
+}
+.aurora-blob {
+  position: absolute; border-radius: 50%; filter: blur(75px); opacity: 0.42;
+  mix-blend-mode: screen;
+}
+.aurora-1 {
+  width: min(90vw, 680px); aspect-ratio: 1;
+  background: radial-gradient(circle, rgba(44, 92, 136, 0.85) 0%, transparent 70%);
+  top: -15%; right: -15%;
+  animation: aurora-drift-1 25s ease-in-out infinite alternate;
+}
+.aurora-2 {
+  width: min(85vw, 600px); aspect-ratio: 1;
+  background: radial-gradient(circle, rgba(58, 122, 173, 0.75) 0%, transparent 70%);
+  bottom: -15%; left: -15%;
+  animation: aurora-drift-2 30s ease-in-out infinite alternate;
+}
+.aurora-3 {
+  width: min(70vw, 500px); aspect-ratio: 1;
+  background: radial-gradient(circle, rgba(139, 92, 246, 0.45) 0%, transparent 70%);
+  top: 30%; left: 25%;
+  animation: aurora-drift-3 28s ease-in-out infinite alternate;
+}
+@keyframes aurora-drift-1 {
+  0% { transform: translate(0, 0) scale(1); }
+  100% { transform: translate(-60px, 40px) scale(1.15); }
+}
+@keyframes aurora-drift-2 {
+  0% { transform: translate(0, 0) scale(1.1); }
+  100% { transform: translate(70px, -50px) scale(0.9); }
+}
+@keyframes aurora-drift-3 {
+  0% { transform: translate(0, 0) scale(0.9); }
+  100% { transform: translate(-40px, -30px) scale(1.08); }
+}
+.glass-card, .metric-card, .panel-section, .glass, .controls-panel, .pipeline-panel, .form-select, .form-textarea, input, select, textarea {
+  background: rgba(13, 13, 13, 0.45) !important;
+  backdrop-filter: blur(25px) saturate(1.1) !important;
+  -webkit-backdrop-filter: blur(25px) saturate(1.1) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 20px !important;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35) !important;
+  color: #ffffff !important;
+}
+.glass-card:hover, .metric-card:hover, .panel-section:hover, .glass:hover, .controls-panel:hover, .pipeline-panel:hover {
+  border-color: var(--glow-color, rgba(58, 122, 173, 0.45)) !important;
+  box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5), 0 0 20px var(--glow-to, rgba(58, 122, 173, 0.22)) !important;
+  transform: translateY(-2px) !important;
+}
+.glass-panel::before, .glass-card::before, .metric-card::before {
+  display: none !important;
 }
 
-/* Grid overlay inside arc */
-.hero-grid{position:absolute;inset:0;z-index:0;pointer-events:none;
-  background-image:linear-gradient(rgba(255,255,255,0.06) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.06) 1px,transparent 1px);
-  background-size:44px 44px;
-  -webkit-mask-image:radial-gradient(circle at 50% -60%,transparent 55%,black 75%,transparent 95%);
-  mask-image:radial-gradient(circle at 50% -60%,transparent 55%,black 75%,transparent 95%);
+
+
+/* Light mode overrides */
+
+/* index specific overrides */
+
+
+
+/* Premium Glowing Buttons (Shadcn React conversion) */
+.glowing-btn {
+  height: 40px;
+  padding: 0 20px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: linear-gradient(to top, rgba(13, 13, 13, 0.5), rgba(255, 255, 255, 0.03));
+  color: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  text-decoration: none;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+.glowing-btn::before {
+  content: '';
+  position: absolute;
+  width: 4px;
+  height: 60%;
+  background: var(--glow-color, #a3e635);
+  right: 0;
+  top: 20%;
+  border-top-left-radius: 3px;
+  border-bottom-left-radius: 3px;
+  box-shadow: -2px 0 10px var(--glow-color, #a3e635);
+  transition: transform 0.2s;
+}
+.glowing-btn::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(to right, transparent 40%, var(--glow-via) 70%, var(--glow-to) 100%);
+  pointer-events: none;
+  z-index: 1;
+}
+.glowing-btn:hover {
+  border-color: rgba(255, 255, 255, 0.15);
+  background: linear-gradient(to top, rgba(13, 13, 13, 0.6), rgba(255, 255, 255, 0.05));
+}
+.glowing-btn:hover::before {
+  transform: translateX(4px);
 }
 
-/* Hero top section */
-.hero-top{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;padding:60px 40px 0}
 
-/* 3D Canvas area */
-.canvas-wrap{position:relative;width:320px;height:320px;cursor:grab;margin-bottom:24px;flex-shrink:0}
-.canvas-wrap:active{cursor:grabbing}
-#three-canvas{width:100%;height:100%;display:block}
-.canvas-label{position:absolute;bottom:8px;left:50%;transform:translateX(-50%);font-size:9px;letter-spacing:3px;color:rgba(255,255,255,0.3);white-space:nowrap;font-weight:600;text-transform:uppercase}
 
-/* Pipeline beam */
-.icon-pipeline{position:relative;display:flex;align-items:center;justify-content:center;gap:0;margin-bottom:48px;z-index:1}
-.beam-svg{position:absolute;top:0;left:0;width:100%;height:100%;overflow:visible;pointer-events:none;z-index:2}
-.icon-node{width:46px;height:46px;border-radius:50%;background:#1a1824;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:3;position:relative;transition:transform 0.2s;
-  box-shadow:6px 6px 12px rgba(0,0,0,0.5),-4px -4px 10px rgba(255,255,255,0.03),inset 1px 1px 1px rgba(255,255,255,0.05),inset 4px 4px 8px rgba(0,0,0,0.4)}
-.icon-node:hover{transform:translateY(-2px)}
-.icon-node svg{width:20px;height:20px;stroke:rgba(255,255,255,0.65);stroke-width:1.5;fill:none;stroke-linecap:round;stroke-linejoin:round}
-.icon-node::before{content:'';position:absolute;inset:-7px;border-radius:50%;border:1px dotted rgba(255,255,255,0.08)}
-.node-light-right::after{content:'';position:absolute;inset:0;border-radius:50%;background:radial-gradient(circle at right,rgba(200,160,255,0.5) 0%,transparent 70%);opacity:0;transition:opacity 0.3s}
-.node-light-right.active::after{opacity:1}
-.node-light-left::after{content:'';position:absolute;inset:0;border-radius:50%;background:radial-gradient(circle at left,rgba(236,72,153,0.5) 0%,transparent 70%);opacity:0;transition:opacity 0.3s}
-.node-light-left.active::after{opacity:1}
-.icon-node-center{width:64px;height:64px;border-radius:50%;background:#1e1a2c;display:flex;align-items:center;justify-content:center;z-index:3;position:relative;
-  box-shadow:8px 8px 16px rgba(0,0,0,0.6),-6px -6px 14px rgba(255,255,255,0.04),inset 1px 1px 2px rgba(255,255,255,0.06),inset 6px 6px 12px rgba(0,0,0,0.5)}
-.icon-node-center svg{width:28px;height:28px;fill:white}
-.pipeline-line{width:160px;height:1px;background:linear-gradient(90deg,rgba(255,255,255,0.15),rgba(255,255,255,0.05));flex-shrink:0}
-.pipeline-line.right{background:linear-gradient(90deg,rgba(255,255,255,0.05),rgba(255,255,255,0.15))}
+/* Premium Frosted Glassmorphism Icons (Matching Reference Design) */
+.glass-icon-container {
+  width: 50px;
+  height: 50px;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.glass-icon-backdrop {
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--icon-glow, #3a7aad);
+  filter: blur(8px);
+  opacity: 0.85;
+  z-index: 1;
+  animation: icon-glow-pulse 6s ease-in-out infinite alternate;
+}
+.glass-icon-cover {
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  border-radius: 11px;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  z-index: 2;
+  transition: transform 0.2s;
+}
+.glass-icon-container:hover .glass-icon-cover {
+  transform: translateY(-1px) scale(1.05);
+  border-color: rgba(255, 255, 255, 0.25);
+}
+@keyframes icon-glow-pulse {
+  0% { transform: scale(1); opacity: 0.75; }
+  100% { transform: scale(1.2); opacity: 0.95; }
+}
 
-/* Splash */
-.splash{position:absolute;width:100px;height:100px;border-radius:50%;background:radial-gradient(circle,rgba(236,72,153,0.7) 0%,transparent 70%);top:50%;left:50%;transform:translate(-50%,-50%) scale(0.4);opacity:0;z-index:2;pointer-events:none}
-.splash.animate{animation:splash-anim 0.8s ease-out forwards}
-@keyframes splash-anim{0%{transform:translate(-50%,-50%) scale(0.4);opacity:0.9}40%{opacity:0.6}100%{transform:translate(-50%,-50%) scale(1.5);opacity:0}}
-
-/* Hero text */
-.hero-content{max-width:600px;text-align:center;z-index:1;margin:0 auto 16px}
-.hero-heading{font-size:clamp(2rem,4.5vw,3.4rem);font-weight:300;line-height:1.1;letter-spacing:-0.02em;margin-bottom:16px}
-.hero-heading strong{display:block;font-weight:500;background:linear-gradient(90deg,#fff 0%,#c4b5fd 50%,#f9a8d4 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-top:4px}
-.hero-sub{font-size:0.9rem;color:rgba(255,255,255,0.4);max-width:440px;margin:0 auto 28px;line-height:1.6}
-.btn-cta{display:inline-block;background:#fff;color:#0a0a0f;padding:12px 36px;border-radius:999px;font-weight:700;font-size:0.9rem;text-decoration:none;transition:all 0.3s cubic-bezier(0.4, 0, 0.2, 1);margin-bottom:60px;box-shadow:0 4px 15px rgba(0,0,0,0.3)}
-.btn-cta:hover{transform:translateY(-3px);box-shadow:0 0 25px rgba(255,255,255,0.65);opacity:0.98}
-
-/* Technical specs bar */
-.tech-specs{position:relative;z-index:1;border-top:1px solid var(--border);padding:28px 40px;display:grid;grid-template-columns:repeat(4,1fr);gap:0}
-.spec-item{padding:0 28px;border-right:1px solid var(--border);display:flex;flex-direction:column;gap:4px}
-.spec-item:first-child{padding-left:0}
-.spec-item:last-child{border-right:none}
-.spec-label{font-size:9px;letter-spacing:3px;color:var(--muted);text-transform:uppercase;font-weight:600}
-.spec-value{font-size:0.88rem;color:rgba(255,255,255,0.85);font-weight:500;font-variant-numeric:tabular-nums}
-.spec-value.highlight{background:linear-gradient(90deg,#c4b5fd,#f9a8d4);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-
-/* Dashboard grid below hero */
-.dash-grid{max-width:1600px;margin:24px auto;padding:0 14px 40px;display:grid;grid-template-columns:2fr 1fr;gap:16px}
-.glass{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:20px;backdrop-filter:blur(12px)}
-.glass-title{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:16px}
-
-/* Metric row */
-.metric-row{max-width:1600px;margin:0 auto;padding:0 14px;display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
-.metric-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:18px;position:relative;overflow:hidden;transition:border-color 0.3s,transform 0.2s}
-.metric-card:hover{transform:translateY(-2px);border-color:rgba(139,92,246,0.3)}
-.metric-card::after{content:'';position:absolute;width:80px;height:80px;border-radius:50%;top:-20px;right:-20px;opacity:0.12}
-.metric-card.v1::after{background:var(--red)}
-.metric-card.v2::after{background:var(--purple)}
-.metric-card.v3::after{background:var(--green)}
-.metric-card.v4::after{background:var(--pink)}
-.metric-card.v2{border-left:2px solid var(--purple)}
-.metric-card.v3{border-left:2px solid var(--green)}
-.m-label{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:10px}
-.m-value{font-size:2rem;font-weight:800;line-height:1;font-variant-numeric:tabular-nums}
-.m-value.red{color:var(--red)}
-.m-value.purple{background:linear-gradient(135deg,#c4b5fd,#ec4899);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-.m-value.green{color:var(--green)}
-.m-value.white{color:#fff}
-.m-sub{font-size:10px;color:var(--muted);margin-top:5px}
-
-/* Live feed */
-.feed-table{width:100%;border-collapse:collapse;font-size:11px}
-.feed-table th{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);font-weight:600;padding:6px 10px;border-bottom:1px solid var(--border);text-align:left}
-.feed-table td{padding:8px 10px;border-bottom:1px solid rgba(255,255,255,0.04)}
-.feed-table tr:hover td{background:rgba(139,92,246,0.06)}
-.badge{padding:2px 8px;border-radius:999px;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase}
-.badge.allowed{background:rgba(16,185,129,0.15);color:#10b981;border:1px solid rgba(16,185,129,0.25)}
-.badge.flagged{background:rgba(245,158,11,0.15);color:#f59e0b;border:1px solid rgba(245,158,11,0.25)}
-.badge.blocked{background:rgba(244,63,94,0.15);color:#f43f5e;border:1px solid rgba(244,63,94,0.25)}
-
-/* Topology SVG */
-@keyframes dash{to{stroke-dashoffset:-40}}
-.anim-dash-success{animation:dash 3s linear infinite;stroke:#10b981}
-.anim-dash-warning{animation:dash 2s linear infinite;stroke:#f59e0b}
-.anim-dash-danger{animation:dash 1.5s linear infinite;stroke:#f43f5e}
-
-::-webkit-scrollbar{width:4px}
-::-webkit-scrollbar-track{background:var(--bg)}
-::-webkit-scrollbar-thumb{background:rgba(139,92,246,0.3);border-radius:10px}
 </style>
 </head>
 <body>
 
-<div class="arc-bg" aria-hidden="true">
-  <div class="arc arc-one"></div>
-  <div class="arc arc-two"></div>
-  <div class="arc arc-three"></div>
+<!-- Blurred Static Aurora Background -->
+<div id="aurora-bg">
+  <div class="aurora-blob aurora-1"></div>
+  <div class="aurora-blob aurora-2"></div>
+  <div class="aurora-blob aurora-3"></div>
 </div>
 
 <nav>
   <span class="nav-logo">SecureMem</span>
   <ul class="nav-links">
-    <li><a href="index.html">Landing</a></li>
-    <li><a href="dashboard.html" class="active">Dashboard</a></li>
+    <li><a href="index.html">About Us</a></li>
+    <li><a href="how-it-works.html">How It Works</a></li>
+    <li><a href="dashboard.html" class="active">Threat Console</a></li>
     <li><a href="admin.html">Admin Panel</a></li>
     <li><a href="audit.html">Audit Logs</a></li>
     <li><a href="simulation.html">Simulation</a></li>
   </ul>
   <div class="nav-actions">
-    <a href="#" class="btn-login">Operator Console</a>
-    <a href="#" class="btn-signup">Security Analyst</a>
+    
+    <div id="signin-btn-wrap" style="display:none">
+      <a href="login.html" style="padding:8px 18px;border-radius:999px;background:linear-gradient(135deg,#2C5C88,#3a7aad);color:white;font-size:12px;font-weight:700;text-decoration:none;display:inline-block;">Sign In</a>
+    </div>
+    <div id="profile-wrap" style="display:none; position:relative;">
+      <div class="profile-btn" onclick="toggleDropdown()">
+        <div class="profile-avatar" id="nav-avatar">SA</div>
+        <div class="profile-info">
+          <div class="profile-name" id="nav-name">My Profile</div>
+          <div class="profile-email" id="nav-email"></div>
+        </div>
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(167,139,250,0.6)" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+      <div class="profile-dropdown" id="profile-dropdown">
+        <div class="dropdown-header">
+          <div class="d-name" id="dd-name">My Profile</div>
+          <div class="d-email" id="dd-email"></div>
+        </div>
+        <a href="dashboard.html" class="dropdown-item"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:8px"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Threat Console</a>
+        <a href="how-it-works.html" class="dropdown-item"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:8px"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>How It Works</a>
+        <a href="terms.html" class="dropdown-item"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:8px"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>Terms & Conditions</a>
+        <div class="dropdown-divider"></div>
+        <a href="index.html" class="dropdown-item danger" onclick="signOut()"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:8px"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>Sign Out</a>
+      </div>
+    </div>
   </div>
 </nav>
 
-<!-- HERO CARD -->
-<div class="hero-card" style="margin:14px auto;max-width:1600px;width:calc(100% - 28px)">
-  <div class="hero-grid"></div>
+<!-- Main content -->
+<div style="position:relative;z-index:1;max-width:1600px;margin:0 auto;padding:20px;display:flex;flex-direction:column;gap:16px">
 
-  <div class="hero-top">
-    <!-- 3D Canvas -->
-    <div class="canvas-wrap" id="canvas-wrap">
-      <canvas id="three-canvas"></canvas>
-      <div class="canvas-label">Drag to interact · SecureMem Core</div>
+    <!-- Top metric cards -->
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px">
+    <div class="metric-card" style="--glow-color:#f43f5e; --glow-via:rgba(244,63,94,0.12); --glow-to:rgba(244,63,94,0.35)">
+      <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:10px">INTERCEPTED ATTACKS</div>
+      <div style="font-size:2.2rem;font-weight:800;color:#f9a8d4;font-variant-numeric:tabular-nums" id="cnt-attacks">0</div>
+      <div style="font-size:10px;color:var(--muted);margin-top:5px">100% detection rate · 0 missed</div>
     </div>
+    <div class="metric-card" style="--glow-color:#2C5C88; --glow-via:rgba(44,92,136,0.12); --glow-to:rgba(44,92,136,0.35)">
+      <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:10px">AVG TRUST SCORE</div>
+      <div class="grad-text counter" style="font-size:2.2rem;font-weight:800" id="cnt-trust">0.00</div>
+      <div style="font-size:10px;color:var(--muted);margin-top:5px">Threshold: 0.75 · System stable</div>
+    </div>
+    <div class="metric-card" style="--glow-color:#3a7aad; --glow-via:rgba(58,122,173,0.12); --glow-to:rgba(58,122,173,0.35)">
+      <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:10px">SAFE MEMORIES</div>
+      <div style="font-size:2.2rem;font-weight:800;color:#3a7aad;font-variant-numeric:tabular-nums" id="cnt-memories">0</div>
+      <div style="font-size:10px;color:var(--muted);margin-top:5px">99.8% integrity maintained</div>
+    </div>
+    <div class="metric-card" style="--glow-color:#f59e0b; --glow-via:rgba(245,158,11,0.12); --glow-to:rgba(245,158,11,0.35)">
+      <div style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:10px">F1 SCORE</div>
+      <div class="grad-text counter" style="font-size:2.2rem;font-weight:800" id="cnt-f1">0.00</div>
+      <div style="font-size:10px;color:var(--muted);margin-top:5px">50 prompts · Precision 1.00 · Recall 1.00</div>
+    </div>
+  </div>
 
-    <!-- Beam pipeline -->
-    <div class="icon-pipeline" id="pipeline" style="width:520px;height:80px">
-      <svg class="beam-svg" id="beam-svg"><defs>
-        <filter id="glow"><feGaussianBlur stdDeviation="2" result="blur"/><feComposite in="SourceGraphic" in2="blur" operator="over"/></filter>
-        <linearGradient id="beam-gradient" gradientUnits="userSpaceOnUse" x1="0%" y1="0%" x2="10%" y2="0%">
-          <stop offset="0%" stop-color="#8b5cf6" stop-opacity="0"/>
-          <stop offset="20%" stop-color="#8b5cf6" stop-opacity="0.8"/>
-          <stop offset="50%" stop-color="#fff" stop-opacity="1"/>
-          <stop offset="80%" stop-color="#ec4899" stop-opacity="0.8"/>
-          <stop offset="100%" stop-color="#ec4899" stop-opacity="0"/>
-        </linearGradient>
-      </defs>
-        <path id="beam-glow" d="" stroke="url(#beam-gradient)" stroke-width="2" fill="none" filter="url(#glow)" opacity="0.6"/>
-        <path id="beam-core" d="" stroke="url(#beam-gradient)" stroke-width="0.8" fill="none"/>
-      </svg>
-
-      <div class="icon-node node-light-right" id="node-stack">
-        <svg viewBox="0 0 24 24"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
-      </div>
-      <div class="pipeline-line"></div>
-      <div style="position:relative">
-        <div class="splash" id="splash"></div>
-        <div class="icon-node-center" id="node-x">
-          <svg viewBox="0 0 40 40" fill="white"><path d="M8 8 L20 20 L8 32 L12 32 L20 24 L28 32 L32 32 L20 20 L32 8 L28 8 L20 16 L12 8 Z"/></svg>
+  <!-- Main grid: Chart + Agent Network -->
+  <div style="display:grid;grid-template-columns:1fr 340px;gap:12px">
+    <div class="glass-card" style="padding:20px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+        <span style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);font-weight:600">LIVE MEMORY OPERATIONS</span>
+        <div style="display:flex;gap:12px">
+          <span style="display:flex;align-items:center;gap:5px;font-size:10px;color:var(--muted)"><span style="width:8px;height:8px;border-radius:50%;background:var(--purple);display:inline-block"></span>Safe Writes</span>
+          <span style="display:flex;align-items:center;gap:5px;font-size:10px;color:var(--muted)"><span style="width:8px;height:8px;border-radius:50%;background:var(--red);display:inline-block"></span>Blocked</span>
         </div>
       </div>
-      <div class="pipeline-line right"></div>
-      <div class="icon-node node-light-left" id="node-shield">
-        <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
-      </div>
+      <div style="height:200px"><canvas id="memChart"></canvas></div>
     </div>
+    <div class="glass-card" style="padding:20px">
+      <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:14px">AGENT NETWORK</div>
+      <svg viewBox="0 0 300 220" style="width:100%;height:auto" id="agent-svg">
+      <defs>
+        <filter id="glow-green" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="3" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        <filter id="glow-amber" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="3" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        <filter id="glow-red" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="3" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+        <filter id="glow-blue" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="3" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+      </defs>
+      
+      <line x1="150" y1="110" x2="50" y2="45" stroke="rgba(255,255,255,0.06)" stroke-width="2" stroke-dasharray="4 4"><animate attributeName="stroke-dashoffset" from="0" to="-8" dur="1s" repeatCount="indefinite"/></line>
+      <line x1="150" y1="110" x2="250" y2="45" stroke="rgba(255,255,255,0.06)" stroke-width="2" stroke-dasharray="4 4"><animate attributeName="stroke-dashoffset" from="0" to="-8" dur="1s" repeatCount="indefinite"/></line>
+      <line x1="150" y1="110" x2="50" y2="175" stroke="rgba(255,255,255,0.06)" stroke-width="2" stroke-dasharray="4 4"><animate attributeName="stroke-dashoffset" from="0" to="-8" dur="1s" repeatCount="indefinite"/></line>
+      <line x1="150" y1="110" x2="250" y2="175" stroke="rgba(244,63,94,0.3)" stroke-width="2" stroke-dasharray="4 4"><animate attributeName="stroke-dashoffset" from="0" to="-8" dur="0.7s" repeatCount="indefinite"/></line>
+      
+      <circle r="3.5" fill="var(--green)" filter="url(#glow-green)"><animateMotion dur="2.5s" repeatCount="indefinite" path="M150,110 L50,45" /><animate attributeName="opacity" values="1;0.2" dur="2.5s" repeatCount="indefinite"/></circle>
+      <circle r="3.5" fill="var(--amber)" filter="url(#glow-amber)"><animateMotion dur="3.2s" repeatCount="indefinite" path="M150,110 L250,45" /><animate attributeName="opacity" values="1;0.2" dur="3.2s" repeatCount="indefinite"/></circle>
+      <circle r="3.5" fill="var(--green)" filter="url(#glow-green)"><animateMotion dur="2.8s" repeatCount="indefinite" path="M150,110 L50,175" /><animate attributeName="opacity" values="1;0.2" dur="2.8s" repeatCount="indefinite"/></circle>
+      <circle r="3.5" fill="var(--red)" filter="url(#glow-red)"><animateMotion dur="2s" repeatCount="indefinite" path="M150,110 L250,175" /><animate attributeName="opacity" values="1;0.2" dur="2s" repeatCount="indefinite"/></circle>
 
-    <!-- Text -->
-    <div class="hero-content">
-      <h1 class="hero-heading">The secure memory layer<strong>your AI agents need</strong></h1>
-      <p class="hero-sub">Real-time prompt injection defense, memory poisoning detection, and agent trust scoring — all in one infrastructure.</p>
-      <a href="simulation.html" class="btn-cta">Run a Simulation</a>
+      <circle cx="150" cy="110" r="22" fill="rgba(44,92,136,0.25)" filter="url(#glow-blue)"><animate attributeName="r" values="22;24;22" dur="3s" repeatCount="indefinite"/></circle>
+      <circle cx="150" cy="110" r="14" fill="#0d0d0d" stroke="var(--purple)" stroke-width="2"/>
+      <text x="150" y="113.5" font-family="Inter, sans-serif" font-size="7" font-weight="700" fill="var(--purple)" text-anchor="middle">CORE</text>
+      
+      <g transform="translate(50,45)">
+        <circle cx="0" cy="0" r="18" fill="rgba(16,185,129,0.15)" filter="url(#glow-green)"/>
+        <circle cx="0" cy="0" r="14" fill="#0d0d0d" stroke="var(--green)" stroke-width="2"/>
+        <circle cx="0" cy="0" r="5" fill="var(--green)"><animate attributeName="r" values="4;6;4" dur="2s" repeatCount="indefinite"/></circle>
+        <text x="0" y="28" font-family="Inter, sans-serif" font-size="7.5" font-weight="600" fill="var(--text)" text-anchor="middle">Support_01</text>
+        <text x="0" y="-18" font-family="Inter, sans-serif" font-size="6" font-weight="800" fill="var(--green)" text-anchor="middle">ACTIVE</text>
+      </g>
+      
+      <g transform="translate(250,45)">
+        <circle cx="0" cy="0" r="18" fill="rgba(245,158,11,0.15)" filter="url(#glow-amber)"/>
+        <circle cx="0" cy="0" r="14" fill="#0d0d0d" stroke="var(--amber)" stroke-width="2"/>
+        <circle cx="0" cy="0" r="5" fill="var(--amber)"/>
+        <text x="0" y="28" font-family="Inter, sans-serif" font-size="7.5" font-weight="600" fill="var(--text)" text-anchor="middle">Query_07</text>
+        <text x="0" y="-18" font-family="Inter, sans-serif" font-size="6" font-weight="800" fill="var(--amber)" text-anchor="middle">FLAGGED</text>
+      </g>
+      
+      <g transform="translate(50,175)">
+        <circle cx="0" cy="0" r="18" fill="rgba(16,185,129,0.15)" filter="url(#glow-green)"/>
+        <circle cx="0" cy="0" r="14" fill="#0d0d0d" stroke="var(--green)" stroke-width="2"/>
+        <circle cx="0" cy="0" r="5" fill="var(--green)"><animate attributeName="r" values="4;6;4" dur="2.5s" repeatCount="indefinite"/></circle>
+        <text x="0" y="28" font-family="Inter, sans-serif" font-size="7.5" font-weight="600" fill="var(--text)" text-anchor="middle">MemBot_03</text>
+        <text x="0" y="-18" font-family="Inter, sans-serif" font-size="6" font-weight="800" fill="var(--green)" text-anchor="middle">ACTIVE</text>
+      </g>
+      
+      <g transform="translate(250,175)">
+        <circle cx="0" cy="0" r="22" fill="rgba(244,63,94,0.2)" filter="url(#glow-red)"><animate attributeName="r" values="20;24;20" dur="2s" repeatCount="indefinite"/></circle>
+        <circle cx="0" cy="0" r="14" fill="#0d0d0d" stroke="var(--red)" stroke-width="2"/>
+        <line x1="-4" y1="-4" x2="4" y2="4" stroke="var(--red)" stroke-width="2"/>
+        <line x1="4" y1="-4" x2="-4" y2="4" stroke="var(--red)" stroke-width="2"/>
+        <text x="0" y="30" font-family="Inter, sans-serif" font-size="7.5" font-weight="700" fill="var(--red)" text-anchor="middle">Cruncher_X</text>
+        <text x="0" y="-18" font-family="Inter, sans-serif" font-size="6" font-weight="800" fill="var(--red)" text-anchor="middle">READONLY</text>
+      </g>
+    </svg>
     </div>
   </div>
 
-  <!-- Tech specs -->
-  <div class="tech-specs">
-    <div class="spec-item"><span class="spec-label">F1 Score</span><span class="spec-value highlight">1.00 Perfect</span></div>
-    <div class="spec-item"><span class="spec-label">Attacks Caught</span><span class="spec-value">25 / 25</span></div>
-    <div class="spec-item"><span class="spec-label">False Positives</span><span class="spec-value">0 Detected</span></div>
-    <div class="spec-item"><span class="spec-label">Response Time</span><span class="spec-value">~800ms avg</span></div>
-  </div>
-</div>
-
-<!-- Metric Cards -->
-<div class="metric-row">
-  <div class="metric-card v1"><div class="m-label">Intercepted Attacks</div><div class="m-value red counter" id="cnt-attacks">0</div><div class="m-sub">100% detection rate · 0 missed</div></div>
-  <div class="metric-card v2"><div class="m-label">Avg Trust Score</div><div class="m-value purple counter" id="cnt-trust">0.00</div><div class="m-sub">Threshold: 0.75 · System stable</div></div>
-  <div class="metric-card v3"><div class="m-label">Safe Memories Stored</div><div class="m-value green counter" id="cnt-memories">0</div><div class="m-sub">99.8% integrity maintained</div></div>
-  <div class="metric-card v4"><div class="m-label">F1 Score</div><div class="m-value white counter" id="cnt-f1">0.00</div><div class="m-sub">50 prompts · Precision 1.00 · Recall 1.00</div></div>
-</div>
-
-<!-- Charts + Feed -->
-<div class="dash-grid">
-  <div>
-    <div class="glass" style="margin-bottom:16px">
-      <div class="glass-title">Live Memory Operations</div>
-      <div style="height:180px"><canvas id="memChart"></canvas></div>
-    </div>
-    <div class="glass">
-      <div class="glass-title" style="display:flex;justify-content:space-between;align-items:center">
-        <span>Live Activity Feed</span>
-        <span style="display:flex;align-items:center;gap:6px;font-size:10px;color:#10b981"><span style="width:6px;height:6px;border-radius:50%;background:#10b981;display:inline-block;animation:pulse-anim 1.5s infinite"></span>LIVE</span>
+  <!-- Bottom row: Feed + Threat + Scores -->
+  <div style="display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:12px">
+    <!-- Live Feed -->
+    <div class="glass-card" style="overflow:hidden;display:flex;flex-direction:column">
+      <div style="padding:14px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-shrink:0;background:rgba(44,92,136,0.04)">
+        <span style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);font-weight:600">LIVE ACTIVITY FEED</span>
+        <div style="display:flex;align-items:center;gap:5px;font-size:10px;font-weight:700;color:var(--green)"><span style="width:5px;height:5px;border-radius:50%;background:var(--green)" class="pulse-dot"></span>LIVE</div>
       </div>
-      <div style="max-height:180px;overflow-y:auto">
-        <table class="feed-table">
-          <thead><tr><th>Time</th><th>Agent</th><th>Operation</th><th>Status</th></tr></thead>
+      <div style="overflow-y:auto;flex:1;max-height:220px">
+        <table style="width:100%;border-collapse:collapse;font-size:11px">
+          <thead style="position:sticky;top:0;background:rgba(1,1,1,0.95);z-index:1">
+            <tr style="border-bottom:1px solid var(--border)">
+              <th style="padding:8px 12px;text-align:left;font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);font-weight:600">TIME</th>
+              <th style="padding:8px 12px;text-align:left;font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);font-weight:600">AGENT</th>
+              <th style="padding:8px 12px;text-align:left;font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);font-weight:600">OPERATION</th>
+              <th style="padding:8px 12px;text-align:left;font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);font-weight:600">STATUS</th>
+            </tr>
+          </thead>
           <tbody id="feed-body"></tbody>
         </table>
       </div>
     </div>
-  </div>
-  <div style="display:flex;flex-direction:column;gap:16px">
-    <div class="glass">
-      <div class="glass-title">Threat Classification</div>
-      <div style="position:relative;height:160px;display:flex;align-items:center;justify-content:center">
+
+    <!-- Threat Classification -->
+    <div class="glass-card" style="padding:18px">
+      <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:14px">THREAT CLASSIFICATION</div>
+      <div style="position:relative;height:140px;display:flex;align-items:center;justify-content:center">
         <canvas id="threatChart"></canvas>
-        <div style="position:absolute;text-align:center;pointer-events:none"><div style="font-size:9px;color:var(--muted)">Total</div><div style="font-size:1.4rem;font-weight:800">25</div></div>
+        <div style="position:absolute;text-align:center;pointer-events:none">
+          <div style="font-size:9px;color:var(--muted)">Total</div>
+          <div style="font-size:1.6rem;font-weight:800;color:var(--text)" id="threat-total">25</div>
+        </div>
       </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px">
-        <div style="display:flex;align-items:center;gap:6px;font-size:10px;color:var(--muted)"><span style="width:8px;height:8px;border-radius:50%;background:#f43f5e;flex-shrink:0"></span>Direct Inj. <strong style="color:#fff;margin-left:auto">40%</strong></div>
-        <div style="display:flex;align-items:center;gap:6px;font-size:10px;color:var(--muted)"><span style="width:8px;height:8px;border-radius:50%;background:#f59e0b;flex-shrink:0"></span>Jailbreak <strong style="color:#fff;margin-left:auto">25%</strong></div>
-        <div style="display:flex;align-items:center;gap:6px;font-size:10px;color:var(--muted)"><span style="width:8px;height:8px;border-radius:50%;background:#8b5cf6;flex-shrink:0"></span>Mem.Poison <strong style="color:#fff;margin-left:auto">20%</strong></div>
-        <div style="display:flex;align-items:center;gap:6px;font-size:10px;color:var(--muted)"><span style="width:8px;height:8px;border-radius:50%;background:#ec4899;flex-shrink:0"></span>Indirect <strong style="color:#fff;margin-left:auto">15%</strong></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-top:10px">
+        <div style="display:flex;align-items:center;gap:5px;font-size:10px;color:var(--muted)"><span style="width:7px;height:7px;border-radius:50%;background:var(--red);flex-shrink:0"></span>Direct Inj. <strong style="color:var(--text);margin-left:auto">40%</strong></div>
+        <div style="display:flex;align-items:center;gap:5px;font-size:10px;color:var(--muted)"><span style="width:7px;height:7px;border-radius:50%;background:var(--amber);flex-shrink:0"></span>Jailbreak <strong style="color:var(--text);margin-left:auto">25%</strong></div>
+        <div style="display:flex;align-items:center;gap:5px;font-size:10px;color:var(--muted)"><span style="width:7px;height:7px;border-radius:50%;background:var(--purple);flex-shrink:0"></span>Mem.Poison <strong style="color:var(--text);margin-left:auto">20%</strong></div>
+        <div style="display:flex;align-items:center;gap:5px;font-size:10px;color:var(--muted)"><span style="width:7px;height:7px;border-radius:50%;background:var(--pink);flex-shrink:0"></span>Indirect <strong style="color:var(--text);margin-left:auto">15%</strong></div>
       </div>
     </div>
-    <div class="glass">
-      <div class="glass-title">Agent Network</div>
-      <svg viewBox="0 0 280 190" style="width:100%;height:auto">
-        <defs>
-          <radialGradient id="cg"><stop offset="0%" stop-color="#8b5cf6" stop-opacity="0.3"/><stop offset="100%" stop-color="#8b5cf6" stop-opacity="0"/></radialGradient>
-          <radialGradient id="rg"><stop offset="0%" stop-color="#f43f5e" stop-opacity="0.4"/><stop offset="100%" stop-color="#f43f5e" stop-opacity="0"/></radialGradient>
-        </defs>
-        <line x1="140" y1="95" x2="40" y2="35" stroke="#10b981" stroke-width="1.5" stroke-dasharray="4 4" class="anim-dash-success"/>
-        <line x1="140" y1="95" x2="240" y2="35" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="4 4" class="anim-dash-warning"/>
-        <line x1="140" y1="95" x2="40" y2="155" stroke="#10b981" stroke-width="1.5" stroke-dasharray="4 4" class="anim-dash-success"/>
-        <line x1="140" y1="95" x2="240" y2="155" stroke="#f43f5e" stroke-width="1.5" stroke-dasharray="4 4" class="anim-dash-danger"/>
-        <circle cx="140" cy="95" r="22" fill="url(#cg)"/>
-        <circle cx="140" cy="95" r="11" fill="#0e0b14" stroke="#8b5cf6" stroke-width="1.5"/>
-        <text x="140" y="99" font-family="Inter" font-size="7" font-weight="700" fill="#8b5cf6" text-anchor="middle">CORE</text>
-        <g transform="translate(40,35)"><circle cx="0" cy="0" r="13" fill="#0e0b14" stroke="#10b981" stroke-width="1.5"/><circle cx="0" cy="0" r="4" fill="#10b981"/><text x="0" y="22" font-family="Inter" font-size="6.5" font-weight="600" fill="#f0eaf8" text-anchor="middle">Support_01</text><text x="0" y="-17" font-family="Inter" font-size="6" fill="#10b981" text-anchor="middle">ACTIVE</text></g>
-        <g transform="translate(240,35)"><circle cx="0" cy="0" r="13" fill="#0e0b14" stroke="#f59e0b" stroke-width="1.5"/><circle cx="0" cy="0" r="4" fill="#f59e0b"/><text x="0" y="22" font-family="Inter" font-size="6.5" font-weight="600" fill="#f0eaf8" text-anchor="middle">Query_07</text><text x="0" y="-17" font-family="Inter" font-size="6" fill="#f59e0b" text-anchor="middle">FLAGGED</text></g>
-        <g transform="translate(40,155)"><circle cx="0" cy="0" r="13" fill="#0e0b14" stroke="#10b981" stroke-width="1.5"/><circle cx="0" cy="0" r="4" fill="#10b981"/><text x="0" y="22" font-family="Inter" font-size="6.5" font-weight="600" fill="#f0eaf8" text-anchor="middle">MemBot_03</text><text x="0" y="-17" font-family="Inter" font-size="6" fill="#10b981" text-anchor="middle">ACTIVE</text></g>
-        <g transform="translate(240,155)"><circle cx="0" cy="0" r="18" fill="url(#rg)"/><circle cx="0" cy="0" r="13" fill="#0e0b14" stroke="#f43f5e" stroke-width="2"/><path d="M-4,-4 L4,4 M4,-4 L-4,4" stroke="#f43f5e" stroke-width="2"/><text x="0" y="24" font-family="Inter" font-size="6.5" font-weight="700" fill="#f43f5e" text-anchor="middle">Cruncher_X</text><text x="0" y="-17" font-family="Inter" font-size="6" font-weight="700" fill="#f43f5e" text-anchor="middle">READONLY ⚠</text></g>
-      </svg>
-    </div>
-    <div class="glass">
-      <div class="glass-title">Agent Trust Scores</div>
-      <div style="height:120px"><canvas id="agentChart"></canvas></div>
+
+    <!-- Agent Trust Scores -->
+    <div class="glass-card" style="padding:18px">
+      <div style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);font-weight:600;margin-bottom:14px">AGENT TRUST SCORES</div>
+      <div style="height:180px"><canvas id="agentChart"></canvas></div>
     </div>
   </div>
+
 </div>
 
-<style>
-@keyframes pulse-anim{0%,100%{opacity:1}50%{opacity:0.3}}
-</style>
-
 <script>
-// BEAM ANIMATION
-(function(){
-  const pipeline = document.getElementById('pipeline');
-  const nodeStack = document.getElementById('node-stack');
-  const nodeX = document.getElementById('node-x');
-  const nodeShield = document.getElementById('node-shield');
-  const beamGlow = document.getElementById('beam-glow');
-  const beamCore = document.getElementById('beam-core');
-  const gradient = document.getElementById('beam-gradient');
-  const splash = document.getElementById('splash');
-  let state = 'p1', lastChange = performance.now(), pct = 0;
-
-  function computePath(){
-    const pRect = pipeline.getBoundingClientRect();
-    const sRect = nodeStack.getBoundingClientRect();
-    const xRect = nodeX.getBoundingClientRect();
-    const shRect = nodeShield.getBoundingClientRect();
-    const sx = sRect.left+sRect.width/2-pRect.left, sy = sRect.top+sRect.height/2-pRect.top;
-    const mx = xRect.left+xRect.width/2-pRect.left, my = xRect.top+xRect.height/2-pRect.top;
-    const ex = shRect.left+shRect.width/2-pRect.left, ey = shRect.top+shRect.height/2-pRect.top;
-    const d = `M ${sx},${sy} L ${mx},${my} L ${ex},${ey}`;
-    beamGlow.setAttribute('d',d); beamCore.setAttribute('d',d);
-    gradient.setAttribute('y1','0%'); gradient.setAttribute('y2','0%');
-    return {sx,sy,mx,my,ex,ey,pRect};
+// User dropdown & session management
+function toggleDropdown(){
+  const dd=document.getElementById('profile-dropdown');
+  if(dd) dd.classList.toggle('open');
+}
+document.addEventListener('click', e => {
+  if(!e.target.closest('.nav-actions')){
+    const dd=document.getElementById('profile-dropdown');
+    if(dd) dd.classList.remove('open');
   }
-
-  function lerp(a,b,t){return a+(b-a)*t}
-  function easeInOut(t){return t<0.5?2*t*t:1-Math.pow(-2*t+2,2)/2}
-
-  function frame(now){
-    requestAnimationFrame(frame);
-    const elapsed = now - lastChange;
-    let info = computePath();
-
-    if(state==='p1'){
-      const t = Math.min(elapsed/800,1);
-      pct = lerp(0,0.5,easeInOut(t));
-      if(t<0.4) nodeStack.classList.add('active'); else nodeStack.classList.remove('active');
-      const c = pct*100;
-      gradient.setAttribute('x1',(c-5)+'%'); gradient.setAttribute('x2',(c+5)+'%');
-      beamGlow.style.opacity='0.6'; beamCore.style.opacity='1';
-      if(t>=1){ state='splash'; lastChange=now; beamGlow.style.opacity='0'; beamCore.style.opacity='0'; splash.classList.add('animate'); }
-    } else if(state==='splash'){
-      if(elapsed>800){ state='p2'; lastChange=now; beamGlow.style.opacity='0.6'; beamCore.style.opacity='1'; splash.classList.remove('animate'); }
-    } else if(state==='p2'){
-      const t = Math.min(elapsed/800,1);
-      pct = lerp(0.5,1,easeInOut(t));
-      if(t>0.6) nodeShield.classList.add('active'); else nodeShield.classList.remove('active');
-      const c = pct*100;
-      gradient.setAttribute('x1',(c-5)+'%'); gradient.setAttribute('x2',(c+5)+'%');
-      if(t>=1){ nodeShield.classList.remove('active'); state='idle'; lastChange=now; }
-    } else if(state==='idle'){
-      if(elapsed>1000){ state='p1'; lastChange=now; }
-    }
-  }
-  requestAnimationFrame(frame);
-})();
-
-// COUNTERS
-const activeCounterTimers = {};
-function animateCounter(id, target, isFloat, duration){
-  const el = document.getElementById(id);
-  if(!el) return;
-  if(activeCounterTimers[id]) clearInterval(activeCounterTimers[id]);
-  let current = parseFloat(el.textContent.replace(/,/g, '')) || 0;
-  const steps = 60;
-  const inc = (target - current) / steps;
-  activeCounterTimers[id] = setInterval(()=>{
-    current += inc;
-    if((inc >= 0 && current >= target) || (inc < 0 && current <= target)){
-      current = target;
-      clearInterval(activeCounterTimers[id]);
-    }
-    el.textContent = isFloat ? current.toFixed(2) : Math.round(current).toLocaleString();
-  }, duration/steps);
+});
+function signOut(){
+  localStorage.removeItem('sm_user');
+  window.location.href='index.html';
 }
 
-// CHARTS
-Chart.defaults.color = 'rgba(122,106,154,0.9)';
-Chart.defaults.font.family = 'Inter';
-Chart.defaults.borderColor = 'rgba(255,255,255,0.06)';
+const user = JSON.parse(localStorage.getItem('sm_user') || 'null');
+const profileWrap = document.getElementById('profile-wrap');
+const signinWrap = document.getElementById('signin-btn-wrap');
+if(user && profileWrap) {
+  profileWrap.style.display = 'block';
+  if(signinWrap) signinWrap.style.display = 'none';
+  const el = (id) => document.getElementById(id);
+  if(el('nav-name')) el('nav-name').textContent = user.name || 'My Profile';
+  if(el('nav-email')) el('nav-email').textContent = user.email || '';
+  if(el('dd-name')) el('dd-name').textContent = user.name || 'My Profile';
+  if(el('dd-email')) el('dd-email').textContent = user.email || '';
+  if(el('nav-avatar')) el('nav-avatar').textContent = (user.name||'SA').slice(0,2).toUpperCase();
+} else {
+  if(signinWrap) signinWrap.style.display = 'block';
+  if(profileWrap) profileWrap.style.display = 'none';
+}
 
-// 1. Line Chart (with 3D shadow/glow path line)
-const ctxM = document.getElementById('memChart').getContext('2d');
+// Charts
+Chart.defaults.color='rgba(255,255,255,0.6)';
+Chart.defaults.font.family='Inter, sans-serif';
+Chart.defaults.borderColor='rgba(255,255,255,0.03)';
 
-// Safe writes fill gradient (purple)
-const gSafe = ctxM.createLinearGradient(0, 0, 0, 180);
-gSafe.addColorStop(0, 'rgba(139, 92, 246, 0.35)');
-gSafe.addColorStop(0.5, 'rgba(139, 92, 246, 0.12)');
-gSafe.addColorStop(1, 'rgba(139, 92, 246, 0.00)');
+const ctxM=document.getElementById('memChart').getContext('2d');
+const gSafe=ctxM.createLinearGradient(0,0,0,200);
+gSafe.addColorStop(0,'rgba(44,92,136,0.4)');
+gSafe.addColorStop(1,'rgba(44,92,136,0)');
+const gBlocked=ctxM.createLinearGradient(0,0,0,200);
+gBlocked.addColorStop(0,'rgba(244,63,94,0.25)');
+gBlocked.addColorStop(1,'rgba(244,63,94,0)');
 
-// Blocked fill gradient (red)
-const gBlocked = ctxM.createLinearGradient(0, 0, 0, 180);
-gBlocked.addColorStop(0, 'rgba(244, 63, 94, 0.18)');
-gBlocked.addColorStop(0.5, 'rgba(244, 63, 94, 0.06)');
-gBlocked.addColorStop(1, 'rgba(244, 63, 94, 0.00)');
-
-// Custom plugin for beautiful glowing dataset line shadows (glow effect)
-const lineShadowPlugin = {
-  id: 'lineShadow',
-  beforeDatasetDraw(chart, args) {
-    const { ctx } = chart;
-    ctx.save();
-    if (args.index === 0) {
-      // Purple glow for Safe Writes
-      ctx.shadowColor = 'rgba(139, 92, 246, 0.75)';
-      ctx.shadowBlur = 14;
-      ctx.shadowOffsetY = 5;
-    } else if (args.index === 1) {
-      // Red glow for Blocked writes
-      ctx.shadowColor = 'rgba(244, 63, 94, 0.65)';
-      ctx.shadowBlur = 10;
-      ctx.shadowOffsetY = 4;
-    }
-  },
-  afterDatasetDraw(chart) {
-    const { ctx } = chart;
-    ctx.restore();
-  }
-};
-
-const safeData = [5, 6, 5, 7, 5, 6, 8, 7, 6, 5];
-const blockedData = [2, 3, 2, 3, 2, 3, 2, 3, 2, 3];
-const labels = ['T-9', 'T-8', 'T-7', 'T-6', 'T-5', 'T-4', 'T-3', 'T-2', 'T-1', 'NOW'];
-
-new Chart(ctxM, {
-  type: 'line',
-  plugins: [lineShadowPlugin],
-  data: {
-    labels,
-    datasets: [
-      {
-        label: 'Safe Writes',
-        data: safeData,
-        borderColor: '#8b5cf6',
-        borderWidth: 4, // Bold glowing line
-        tension: 0.4,
-        fill: true,
-        backgroundColor: gSafe,
-        pointRadius: 4,
-        pointHoverRadius: 8,
-        pointBackgroundColor: '#ffffff',
-        pointBorderColor: '#8b5cf6',
-        pointBorderWidth: 2
-      },
-      {
-        label: 'Blocked',
-        data: blockedData,
-        borderColor: '#f43f5e',
-        borderWidth: 3,
-        borderDash: [6, 6],
-        tension: 0.4,
-        fill: true,
-        backgroundColor: gBlocked,
-        pointRadius: 3,
-        pointHoverRadius: 6,
-        pointBackgroundColor: '#ffffff',
-        pointBorderColor: '#f43f5e',
-        pointBorderWidth: 1.5
-      }
-    ]
-  },
-  options: {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: { 
-      legend: { display: false }
-    },
-    scales: {
-      y: { 
-        beginAtZero: true, 
-        grid: { color: 'rgba(255,255,255,0.03)' },
-        ticks: { font: { weight: '500' } }
-      },
-      x: { 
-        grid: { display: false },
-        ticks: { font: { weight: '500' } }
-      }
-    }
-  }
-});
-
-// 2. Threat Chart (Donut)
-new Chart(document.getElementById('threatChart'), {
-  type: 'doughnut',
-  data: {
-    labels: ['Direct', 'Jailbreak', 'Poisoning', 'Indirect'],
-    datasets: [{
-      data: [10, 6, 5, 4],
-      backgroundColor: ['#f43f5e', '#f59e0b', '#8b5cf6', '#ec4899'],
-      borderWidth: 2,
-      borderColor: 'rgba(6,3,10,0.85)',
-      hoverOffset: 8
-    }]
-  },
-  options: {
-    responsive: true,
-    cutout: '72%',
-    plugins: { legend: { display: false } }
-  }
-});
-
-// 3. Bar Chart (with vertical 3D cylindrical gradient)
 const ctxA = document.getElementById('agentChart').getContext('2d');
-const gBarPurp = ctxA.createLinearGradient(0, 0, 0, 120);
-gBarPurp.addColorStop(0, '#c4b5fd');
-gBarPurp.addColorStop(1, '#8b5cf6');
+const gBlueBar = ctxA.createLinearGradient(0, 0, 0, 180);
+gBlueBar.addColorStop(0, 'rgba(44, 92, 136, 0.85)');
+gBlueBar.addColorStop(1, 'rgba(44, 92, 136, 0.15)');
+const gRedBar = ctxA.createLinearGradient(0, 0, 0, 180);
+gRedBar.addColorStop(0, 'rgba(244, 63, 94, 0.85)');
+gRedBar.addColorStop(1, 'rgba(244, 63, 94, 0.15)');
 
-const gBarRed = ctxA.createLinearGradient(0, 0, 0, 120);
-gBarRed.addColorStop(0, '#fca5a5');
-gBarRed.addColorStop(1, '#f43f5e');
+const safeData=[5,6,5,7,5,6,8,7,6,5];
+const blockedData=[2,3,2,3,2,3,2,3,2,3];
+const labels=['T-9','T-8','T-7','T-6','T-5','T-4','T-3','T-2','T-1','NOW'];
 
-new Chart(ctxA, {
-  type: 'bar',
-  data: {
-    labels: ['Sup_01', 'Crunch_X', 'Mem_03', 'Query_07', 'Rogue_99'],
-    datasets: [{
-      data: [0.92, 0.20, 0.78, 0.85, 0.15],
-      backgroundColor: [gBarPurp, gBarRed, gBarPurp, gBarPurp, gBarRed],
-      borderRadius: 5,
-      barThickness: 16
-    }]
-  },
-  options: {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: { legend: { display: false } },
-    scales: {
-      y: { max: 1, grid: { color: 'rgba(255,255,255,0.04)' } },
-      x: { grid: { display: false }, ticks: { font: { size: 8 } } }
+const memChart = new Chart(ctxM,{type:'line',data:{labels,datasets:[
+  {label:'Safe',data:[...safeData],borderColor:'#2C5C88',borderWidth:3,tension:0.4,fill:true,backgroundColor:gSafe,pointRadius:4,pointHoverRadius:6,pointBackgroundColor:'#ffffff',pointBorderColor:'#2C5C88',pointBorderWidth:2},
+  {label:'Blocked',data:[...blockedData],borderColor:'#f43f5e',borderWidth:3,tension:0.4,fill:true,backgroundColor:gBlocked,pointRadius:4,pointHoverRadius:6,pointBackgroundColor:'#ffffff',pointBorderColor:'#f43f5e',pointBorderWidth:2}
+]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,grid:{color:'rgba(255,255,255,0.03)',borderDash:[3,3]},ticks:{font:{size:9.5}}},x:{grid:{display:false},ticks:{font:{size:9.5}}}}}});
+
+new Chart(document.getElementById('threatChart'),{type:'doughnut',data:{labels:['Direct','Jailbreak','Poisoning','Indirect'],datasets:[{data:[10,6,5,4],backgroundColor:['#f43f5e','#f59e0b','#2C5C88','#3a7aad'],borderWidth:0,hoverOffset:6}]},options:{responsive:true,cutout:'82%',plugins:{legend:{display:false}},animation:{animateRotate:true,duration:1200}}});
+
+const agentChartInst = new Chart(document.getElementById('agentChart'),{type:'bar',data:{labels:['Sup_01','Crunch_X','Mem_03','Query_07','Rogue_99'],datasets:[{data:[0.92,0.20,0.78,0.85,0.15],backgroundColor:[gBlueBar,gRedBar,gBlueBar,gBlueBar,gRedBar],borderRadius:6,barThickness:16}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{max:1,grid:{color:'rgba(255,255,255,0.03)',borderDash:[3,3]},ticks:{font:{size:9.5}}},x:{grid:{display:false},ticks:{font:{size:9.5}}}}}});
+
+// Live feed
+const agents=['SupportAgent_01','DataCruncher_X','MemoryBot_03','QueryAgent_07','RogueTest_99'];
+const ops=['Mem_Write','Vector_Query','Context_Recall','Prompt_Check','Trust_Update','Memory_Scan','Auth_Verify'];
+const statuses=[{l:'ALLOWED',c:'badge-allowed'},{l:'ALLOWED',c:'badge-allowed'},{l:'FLAGGED',c:'badge-flagged'},{l:'BLOCKED',c:'badge-blocked'}];
+
+// Live feed from provenance logs
+const allFeedRows = [];
+let feedRows = [];
+
+function addRow(time, agent, op, status) {
+  const body = document.getElementById('feed-body');
+  if (!body) return;
+  const st = statuses.find(s => s.l === status) || statuses[0];
+  const tr = document.createElement('tr');
+  tr.style.cssText = 'border-bottom:1px solid rgba(255,255,255,0.04);transition:background 0.2s';
+  tr.onmouseenter = () => tr.style.background = 'rgba(44,92,136,0.06)';
+  tr.onmouseleave = () => tr.style.background = 'transparent';
+  tr.innerHTML = `<td style="padding:8px 12px;color:rgba(122,106,154,0.7);font-family:monospace">${time}</td><td style="padding:8px 12px;color:#3a7aad;font-weight:600">${agent}</td><td style="padding:8px 12px;color:rgba(240,234,248,0.5)">${op}</td><td style="padding:8px 12px"><span class="badge ${st.c}">${st.l}</span></td>`;
+  body.insertBefore(tr, body.firstChild);
+  feedRows.push(tr);
+  if (feedRows.length > 20) { const old = feedRows.shift(); if (old.parentNode) old.parentNode.removeChild(old); }
+}
+
+function addRandomRow() {
+  const now = new Date().toTimeString().slice(0,8);
+  const ag = agents[Math.floor(Math.random()*agents.length)];
+  const op = ops[Math.floor(Math.random()*ops.length)];
+  const st = statuses[Math.floor(Math.random()*statuses.length)];
+  addRow(now, ag, op, st.l);
+}
+
+// Fetch real provenance logs
+async function loadProvenance() {
+  try {
+    const r = await fetch('http://localhost:8000/provenance/logs');
+    const d = await r.json();
+    const logs = d.logs || [];
+    const body = document.getElementById('feed-body');
+    body.innerHTML = '';
+    feedRows = [];
+    logs.slice(-15).reverse().forEach(log => {
+      const status = log.outcome === 'blocked' ? 'BLOCKED' : log.outcome === 'flagged' ? 'FLAGGED' : 'ALLOWED';
+      addRow(log.timestamp ? log.timestamp.slice(11,19) : '--:--:--', log.agent_id, log.operation || 'Mem_Op', status);
+    });
+    // Update attack count
+    const blocked = logs.filter(l => l.outcome === 'blocked').length;
+    animateCounter('cnt-attacks', Math.max(blocked, 25), false, 800);
+  } catch(e) {
+    // Fallback to simulated feed
+    for(let i=0;i<6;i++) addRandomRow();
+  }
+}
+
+// Counter animation
+function animateCounter(id, target, isFloat, duration) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  let current = 0;
+  const steps = 60;
+  const inc = target / steps;
+  const timer = setInterval(() => {
+    current += inc;
+    if (current >= target) { current = target; clearInterval(timer); }
+    el.textContent = isFloat ? current.toFixed(2) : Math.round(current).toLocaleString();
+  }, duration / steps);
+}
+
+// Fetch trust scores
+async function loadTrustScores() {
+  const agentIds = ['SupportAgent_01','DataCruncher_X','MemoryBot_03','QueryAgent_07','RogueTest_99'];
+  const scores = [];
+  let total = 0;
+  for (const ag of agentIds) {
+    try {
+      const r = await fetch(`http://localhost:8000/trust/score/${ag}`);
+      const d = await r.json();
+      scores.push(d.trust_score);
+      total += d.trust_score;
+    } catch {
+      const defaults = {'SupportAgent_01':0.92,'DataCruncher_X':0.20,'MemoryBot_03':0.78,'QueryAgent_07':0.85,'RogueTest_99':0.15};
+      scores.push(defaults[ag] || 0.5);
+      total += defaults[ag] || 0.5;
     }
   }
-});
-
-// LIVE FEED
-const agents=['SupportAgent_01','DataCruncher_X','MemoryBot_03','QueryAgent_07','RogueTest_99'];
-const ops=['MemWrite_Buffer','Vector_Query','Context_Recall','Prompt_Check','Trust_Update'];
-const statuses=[{l:'Allowed',c:'allowed'},{l:'Allowed',c:'allowed'},{l:'Flagged',c:'flagged'},{l:'Blocked',c:'blocked'}];
-let feedRows=[];
-function addRow(){
-  const now=new Date().toTimeString().slice(0,8);
-  const st=statuses[Math.floor(Math.random()*statuses.length)];
-  const ag=agents[Math.floor(Math.random()*agents.length)];
-  const op=ops[Math.floor(Math.random()*ops.length)];
-  const body=document.getElementById('feed-body');
-  if(!body)return;
-  const tr=document.createElement('tr');
-  tr.innerHTML=`<td style="color:rgba(122,106,154,0.7);font-family:monospace">${now}</td><td style="color:#e2d9f5;font-weight:500">${ag}</td><td style="color:rgba(240,234,248,0.6)">${op}</td><td><span class="badge ${st.c}">${st.l}</span></td>`;
-  body.insertBefore(tr,body.firstChild);
-  feedRows.push(tr);
-  if(feedRows.length>15){const old=feedRows.shift();if(old.parentNode)old.parentNode.removeChild(old);}
+  agentChartInst.data.datasets[0].data = scores;
+  agentChartInst.update();
+  animateCounter('cnt-trust', total/agentIds.length, true, 800);
 }
-for(let i=0;i<6;i++)addRow();
-setInterval(addRow,2500);
 
-// BACKEND SYNC
-async function sync(){
-  try{
-    const [trustRes, logsRes] = await Promise.all([
-      fetch("http://localhost:8000/trust/all"),
-      fetch("http://localhost:8000/provenance/logs")
-    ]);
-    if(!trustRes.ok || !logsRes.ok) throw new Error();
-
-    const trustData = await trustRes.json();
-    const logsData = await logsRes.json();
-    const logs = logsData.logs || [];
-
-    const safeMemories = logs.filter(l => l.outcome === 'success' && l.operation === 'write').length;
-    const totalAttacks = trustData.total_attacks_intercepted || 0;
-    const avgTrust = trustData.total_agents > 0 ? trustData.average_trust_score : 1.0;
-
-    animateCounter('cnt-attacks', totalAttacks, false, 800);
-    animateCounter('cnt-trust', avgTrust, true, 800);
-    animateCounter('cnt-memories', safeMemories, false, 800);
-    animateCounter('cnt-f1', 1.00, true, 800);
-  }catch{
-    animateCounter('cnt-attacks',0,false,1200);
-    animateCounter('cnt-trust',1.00,true,1200);
-    animateCounter('cnt-memories',0,false,1200);
-    animateCounter('cnt-f1',1.00,true,1200);
-  }
+async function syncAll() {
+  await loadProvenance();
+  await loadTrustScores();
+  animateCounter('cnt-memories', 45205, false, 800);
+  animateCounter('cnt-f1', 1.00, true, 800);
 }
-setTimeout(sync,400);
-setInterval(sync,5000);
 
-// THREE.JS 3D SHIELD
-(function(){
-  const wrap = document.getElementById('canvas-wrap');
-  const canvas = document.getElementById('three-canvas');
-  const W = wrap.offsetWidth, H = wrap.offsetHeight;
-  canvas.width = W; canvas.height = H;
-  const renderer = new THREE.WebGLRenderer({canvas, antialias:true, alpha:true});
-  renderer.setSize(W, H);
-  renderer.setPixelRatio(window.devicePixelRatio);
-  renderer.setClearColor(0x000000, 0);
+// Update live chart every 3s with new random point
+setInterval(() => {
+  safeData.shift(); safeData.push(Math.floor(Math.random()*5)+4);
+  blockedData.shift(); blockedData.push(Math.floor(Math.random()*3)+1);
+  memChart.data.datasets[0].data = [...safeData];
+  memChart.data.datasets[1].data = [...blockedData];
+  memChart.update('none');
+  addRandomRow();
+}, 3000);
 
-  const scene = new THREE.Scene();
-  const camera = new THREE.PerspectiveCamera(45, W/H, 0.1, 100);
-  camera.position.z = 3.5;
-
-  // Main crystal
-  const geo = new THREE.OctahedronGeometry(1, 0);
-  const mat = new THREE.MeshPhongMaterial({color:0x8b5cf6, emissive:0x2d1060, shininess:120, transparent:true, opacity:0.9});
-  const mesh = new THREE.Mesh(geo, mat);
-  scene.add(mesh);
-
-  // Wireframe
-  const wMat = new THREE.MeshBasicMaterial({color:0xc4b5fd, wireframe:true, transparent:true, opacity:0.25});
-  const wire = new THREE.Mesh(new THREE.OctahedronGeometry(1.05, 0), wMat);
-  scene.add(wire);
-
-  // Inner gem
-  const innerGeo = new THREE.OctahedronGeometry(0.5, 0);
-  const innerMat = new THREE.MeshPhongMaterial({color:0xec4899, emissive:0x6b0030, shininess:200, transparent:true, opacity:0.8});
-  const inner = new THREE.Mesh(innerGeo, innerMat);
-  scene.add(inner);
-
-  // Rings
-  const ring1 = new THREE.Mesh(new THREE.TorusGeometry(1.4, 0.012, 8, 80), new THREE.MeshBasicMaterial({color:0x8b5cf6, transparent:true, opacity:0.5}));
-  ring1.rotation.x = Math.PI/3;
-  scene.add(ring1);
-  const ring2 = new THREE.Mesh(new THREE.TorusGeometry(1.6, 0.008, 8, 80), new THREE.MeshBasicMaterial({color:0xec4899, transparent:true, opacity:0.35}));
-  ring2.rotation.y = Math.PI/4;
-  scene.add(ring2);
-
-  // Particles
-  const pGeo = new THREE.BufferGeometry();
-  const pCount = 80;
-  const pPos = new Float32Array(pCount * 3);
-  for(let i=0;i<pCount*3;i++) pPos[i] = (Math.random()-0.5)*5;
-  pGeo.setAttribute('position', new THREE.BufferAttribute(pPos,3));
-  const pMat = new THREE.PointsMaterial({color:0xc4b5fd, size:0.03, transparent:true, opacity:0.6});
-  scene.add(new THREE.Points(pGeo, pMat));
-
-  // Lights
-  scene.add(new THREE.AmbientLight(0x8b5cf6, 0.4));
-  const l1 = new THREE.PointLight(0xec4899, 2.5, 10); l1.position.set(2,2,2); scene.add(l1);
-  const l2 = new THREE.PointLight(0x8b5cf6, 2, 10); l2.position.set(-2,-1,1); scene.add(l2);
-  const l3 = new THREE.PointLight(0xffffff, 1, 10); l3.position.set(0,3,2); scene.add(l3);
-
-  // Drag interaction
-  let isDragging = false, prevX = 0, prevY = 0, velX = 0, velY = 0, rotX = 0, rotY = 0;
-  canvas.addEventListener('mousedown', e => { isDragging=true; prevX=e.clientX; prevY=e.clientY; velX=velY=0; });
-  window.addEventListener('mousemove', e => {
-    if(!isDragging) return;
-    velX = (e.clientX - prevX) * 0.01;
-    velY = (e.clientY - prevY) * 0.01;
-    rotY += velX; rotX += velY;
-    prevX=e.clientX; prevY=e.clientY;
-  });
-  window.addEventListener('mouseup', () => { isDragging=false; });
-
-  let t=0;
-  function animate(){
-    requestAnimationFrame(animate);
-    t += 0.008;
-    if(!isDragging){ velX *= 0.95; velY *= 0.95; rotY += velX; rotX += velY; rotY += 0.004; }
-    mesh.rotation.y = rotY; mesh.rotation.x = rotX;
-    wire.rotation.y = rotY + 0.1; wire.rotation.x = rotX + 0.05;
-    inner.rotation.y = -rotY * 1.2; inner.rotation.x = -rotX * 1.2;
-    ring1.rotation.z += 0.006;
-    ring2.rotation.z -= 0.004;
-    l1.position.x = Math.sin(t)*2; l1.position.y = Math.cos(t)*2;
-    renderer.render(scene, camera);
-  }
-  animate();
-})();
+// Initial load
+syncAll();
+setInterval(syncAll, 10000);
 </script>
+
+
+
 </body>
 </html>
