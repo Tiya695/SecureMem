@@ -16,6 +16,7 @@ from firewall.trust_engine import router as trust_router
 from firewall.policy_engine import router as policy_router
 from firewall.investigator_agent import router as investigator_router
 from memory.api import router as memory_router
+from backend.gateway import router as gateway_router
 from groq import Groq
 import logging
 import os
@@ -96,6 +97,7 @@ app.include_router(trust_router)
 app.include_router(policy_router)
 app.include_router(investigator_router)
 app.include_router(memory_router)
+app.include_router(gateway_router)
 
 model = SentenceTransformer('all-MiniLM-L6-v2')
 chroma_client = chromadb.PersistentClient(path="chroma_data")
