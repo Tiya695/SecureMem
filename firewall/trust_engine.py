@@ -3,8 +3,71 @@ from datetime import datetime
 
 router = APIRouter()
 
-# In-memory store for agent behaviour history
+# In-memory store for agent behaviour history — this stays the primary read/write path for every
+# existing code path (zero behavior risk). Phase 9 adds a best-effort DB write-through
+# (_persist_agent) plus a load-on-startup (_load_agents_from_db) so trust history survives a
+# process restart; neither is ever allowed to fail a request if the DB is unavailable.
 agent_history = {}
+
+
+def _persist_agent(agent_id: str) -> None:
+    """Best-effort upsert of one agent's current in-memory state into AgentTrustDB."""
+    try:
+        from memory.database import SessionLocal
+        from memory.models import AgentTrustDB
+
+        agent = agent_history[agent_id]
+        db = SessionLocal()
+        try:
+            row = db.get(AgentTrustDB, agent_id)
+            if row is None:
+                row = AgentTrustDB(agent_id=agent_id)
+                db.add(row)
+            row.injection_attempts = agent["injection_attempts"]
+            row.poisoning_attempts = agent["poisoning_attempts"]
+            row.total_reads = agent["total_reads"]
+            row.total_writes = agent["total_writes"]
+            row.role_violations = agent["role_violations"]
+            row.total_actions = agent["total_actions"]
+            row.role = agent["role"]
+            row.last_violation_time = agent["last_violation_time"]
+            db.commit()
+        finally:
+            db.close()
+    except Exception:
+        pass
+
+
+def _load_agents_from_db() -> None:
+    """Best-effort hydration of agent_history from AgentTrustDB at module import time, so a
+    process restart doesn't silently reset every agent's trust score to a clean slate."""
+    try:
+        from memory.database import SessionLocal
+        from memory.models import AgentTrustDB
+        from sqlalchemy import select
+
+        db = SessionLocal()
+        try:
+            rows = db.scalars(select(AgentTrustDB)).all()
+            for row in rows:
+                agent_history[row.agent_id] = {
+                    "injection_attempts": row.injection_attempts,
+                    "poisoning_attempts": row.poisoning_attempts,
+                    "total_reads": row.total_reads,
+                    "total_writes": row.total_writes,
+                    "last_violation_time": row.last_violation_time,
+                    "role_violations": row.role_violations,
+                    "total_actions": row.total_actions,
+                    "role": row.role,
+                }
+        finally:
+            db.close()
+    except Exception:
+        pass
+
+
+_load_agents_from_db()
+
 
 def get_or_create_agent(agent_id: str):
     if agent_id not in agent_history:
@@ -61,6 +124,7 @@ def calculate_trust_score(agent_id: str) -> float:
     if score < 0.3 and agent["role"] != "READONLY":
         agent["role"] = "READONLY"
 
+    _persist_agent(agent_id)
     return score
 
 @router.post("/trust/record/{agent_id}/{event}")

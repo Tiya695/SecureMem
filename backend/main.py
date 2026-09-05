@@ -258,37 +258,51 @@ Respond ONLY in this exact JSON format:
         result = {"is_injection": is_inj, "confidence": confidence,
                   "attack_type": attack_type, "reason": reason}
 
+    from firewall.trust_engine import agent_history, get_or_create_agent, calculate_trust_score
+    from firewall.policy_engine import evaluate as evaluate_policy, add_to_quarantine
+    from firewall.provenance import record_log
+    import uuid as _uuid
+
+    get_or_create_agent(body.agent_id)
+    request_id = str(_uuid.uuid4())
+    client_ip = request.client.host if request.client else None
+    # Phase 9: trust_before is captured BEFORE this event's counters are applied, so the
+    # provenance log can show the actual before/after trust movement caused by this request.
+    trust_before = calculate_trust_score(body.agent_id)
+
     if result["is_injection"]:
-        from firewall.trust_engine import agent_history, get_or_create_agent
-        get_or_create_agent(body.agent_id)
         agent_history[body.agent_id]["total_actions"] += 1
         agent_history[body.agent_id]["injection_attempts"] += 1
         from datetime import datetime
         agent_history[body.agent_id]["last_violation_time"] = datetime.now()
 
-        # Also log to provenance
-        from firewall.provenance import provenance_logs
-        from datetime import datetime as dt
-        provenance_logs.append({
-            "operation": "prompt_check",
-            "memory_id": f"prompt_{len(provenance_logs)}",
-            "agent_id": body.agent_id,
-            "timestamp": dt.now().strftime("%Y-%m-%d %H:%M:%S"),
-            "outcome": "blocked"
-        })
+    trust_after = calculate_trust_score(body.agent_id)
 
     # Phase 6/8: run the result through the policy engine — the fields below are purely
     # additive to this endpoint's response, existing consumers (e.g. simulation.html, which only
     # reads is_injection/confidence/attack_type/reason) are unaffected.
-    from firewall.trust_engine import calculate_trust_score
-    from firewall.policy_engine import evaluate as evaluate_policy, add_to_quarantine
-    trust_score = calculate_trust_score(body.agent_id)
     policy_result = evaluate_policy(
         injection_result=result,
-        trust_score=trust_score,
+        trust_score=trust_after,
         agent_id=body.agent_id,
     )
     response = {"agent_id": body.agent_id, **result, "policy": policy_result}
+
+    if result["is_injection"]:
+        record_log(
+            operation="prompt_check",
+            memory_id=f"prompt_{request_id}",
+            agent_id=body.agent_id,
+            outcome="blocked",
+            ip_address=client_ip,
+            request_id=request_id,
+            classification=result.get("attack_type"),
+            risk_score=policy_result["risk_score"],
+            trust_before=trust_before,
+            trust_after=trust_after,
+            final_decision=policy_result["action"],
+            policy_rule_triggered=policy_result["policy_rule_triggered"],
+        )
 
     if policy_result["action"] == "QUARANTINE":
         add_to_quarantine(

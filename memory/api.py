@@ -26,14 +26,17 @@ router = APIRouter()
 model = SentenceTransformer('all-MiniLM-L6-v2')
 
 
-def log_provenance(operation: str, memory_id: str, agent_id: str, outcome: str):
-    """Best-effort call to the provenance logger. Never breaks the main request if it fails."""
+def log_provenance(operation: str, memory_id: str, agent_id: str, outcome: str, **extra):
+    """Best-effort call to the provenance logger. Never breaks the main request if it fails.
+    `extra` accepts the Phase 9 fields (risk_score, trust_before, trust_after, final_decision,
+    policy_rule_triggered, classification) — all optional, omit any that don't apply."""
     try:
         httpx.post("http://127.0.0.1:8000/provenance/log", json={
             "operation": operation,
             "memory_id": memory_id,
             "agent_id": agent_id,
-            "outcome": outcome
+            "outcome": outcome,
+            **extra,
         }, timeout=2.0)
     except Exception:
         pass
@@ -111,8 +114,18 @@ def write_memory(request: Request, req: WriteRequest, current_agent: dict = Depe
         agent_id=req.agent_id,
     )
 
+    # This write path doesn't mutate the agent's trust counters itself, so before/after are the
+    # same value here — still logged for a consistent provenance schema across all operations.
+    policy_log_fields = dict(
+        risk_score=policy_result["risk_score"],
+        trust_before=trust_score,
+        trust_after=trust_score,
+        final_decision=policy_result["action"],
+        policy_rule_triggered=policy_result["policy_rule_triggered"],
+    )
+
     if policy_result["action"] == "BLOCK":
-        log_provenance("write_blocked", "n/a", req.agent_id, "blocked")
+        log_provenance("write_blocked", "n/a", req.agent_id, "blocked", **policy_log_fields)
         return {"status": "blocked", "reason": policy_result["reason"], "policy": policy_result}
 
     if policy_result["action"] == "QUARANTINE":
@@ -123,7 +136,7 @@ def write_memory(request: Request, req: WriteRequest, current_agent: dict = Depe
             reason=policy_result["reason"],
             source="policy_engine",
         )
-        log_provenance("write_quarantined", quarantine_id, req.agent_id, "quarantined")
+        log_provenance("write_quarantined", quarantine_id, req.agent_id, "quarantined", **policy_log_fields)
         return {"status": "quarantined", "quarantine_id": quarantine_id, "policy": policy_result}
 
     embedding = model.encode(stored_content).tolist()
@@ -154,8 +167,8 @@ def write_memory(request: Request, req: WriteRequest, current_agent: dict = Depe
         if pii_result["has_pii"]:
             # Log that PII was found + redacted, but never the raw PII itself or the pii_types
             # list beyond what's needed to audit the policy — memory_id lets an admin trace it.
-            log_provenance("write_pii_redacted", mem.id, req.agent_id, "redacted")
-        log_provenance("write", mem.id, req.agent_id, "success")
+            log_provenance("write_pii_redacted", mem.id, req.agent_id, "redacted", **policy_log_fields)
+        log_provenance("write", mem.id, req.agent_id, "success", **policy_log_fields)
         return {"status": "stored", "id": mem.id, "policy": policy_result}
     finally:
         db.close()
