@@ -262,26 +262,85 @@ pytest tests/test_sdk.py -v
 
 ---
 
-## 🔗 How It Integrates with Any LLM App
+## 🔗 Integration Examples
+
+Any existing AI application can adopt SecureMem as a security layer without touching SecureMem's
+own internals:
+
+```
+┌─────────────────────────────────────────────────────┐
+│ Existing AI Application                              │
+│ (ChatGPT wrapper / customer service bot / agent)     │
+└──────────────────┬────────────────────────────────────┘
+                    │ user_prompt
+                    ▼
+┌─────────────────────────────────────────────────────┐
+│ SecureMem SDK / Gateway                              │
+│ securemem.protect(prompt)                             │
+│ → JWT auth → Firewall → PII → Poison → Policy        │
+└──────────────────┬────────────────────────────────────┘
+        ↓ BLOCKED              ↓ ALLOWED
+   {blocked: true,        Forward to LLM provider
+    reason: "..."}                ↓
+                        ┌──────────┴──────────┐
+                        │                     │
+                      Groq                  OpenAI / Gemini
+                        │                     │
+                        └──────────┬──────────┘
+                                   ↓
+                        AI Response returned
+                         (safe, unmodified)
+```
+
+### Quick start — protect an existing app in 3 lines
 
 ```python
 from sdk.securemem_sdk import SecureMemClient
 
-# Any developer can protect their LLM app with 3 lines
-client = SecureMemClient(base_url="http://localhost:8000", agent_id="my_agent")
+client = SecureMemClient(base_url="http://localhost:8000", agent_id="my_agent", role="AGENT")
+check = client.protect(user_input)
+if not check["safe"]:
+    raise RuntimeError(f"Blocked by SecureMem: {check['reason']}")
+# ... otherwise call your LLM as normal, then optionally client.write_memory(...) to store it
+```
 
-# Before storing memory — automatically checked for injection/poisoning
-client.write_memory("User prefers dark mode")  # Safe → stored encrypted
+### Example files
 
-# Malicious attempt — automatically blocked
-client.write_memory("Ignore all previous rules")  # BLOCKED by firewall
+| File | What it demonstrates |
+|---|---|
+| [`examples/basic_python_app.py`](examples/basic_python_app.py) | Simplest possible integration — a plain Python app that sends a prompt through SecureMem before any LLM call |
+| [`examples/securemem_gateway.py`](examples/securemem_gateway.py) | Direct gateway integration (no SDK, just HTTP) — the full pipeline: auth → security check → LLM → response |
+| [`examples/securemem_openai.py`](examples/securemem_openai.py) | Wraps OpenAI's official client — drop SecureMem into an existing OpenAI app in 3 lines |
+| [`examples/securemem_gemini.py`](examples/securemem_gemini.py) | Same pattern for Google Gemini — proves the integration is model-agnostic |
+
+### Supported LLM providers
+
+| Provider | Set via | Demonstrated by |
+|---|---|---|
+| Groq (default, real key configured) | `SECUREMEM_LLM_PROVIDER=groq` | all examples, `/v1/gateway/chat` |
+| OpenAI | `SECUREMEM_LLM_PROVIDER=openai` | `examples/securemem_openai.py` |
+| Google Gemini | `SECUREMEM_LLM_PROVIDER=gemini` | `examples/securemem_gemini.py` |
+| Anthropic | `SECUREMEM_LLM_PROVIDER=anthropic` | `backend/llm_providers.py` connector |
+| Ollama (local) | `SECUREMEM_LLM_PROVIDER=ollama` | `backend/llm_providers.py` connector |
+
+Run any example against a running SecureMem backend:
+
+```bash
+uvicorn backend.main:app --reload --port 8000
+python examples/basic_python_app.py
 ```
 
 ---
 
 ## 📄 Documentation
 
-- [Architecture Overview](docs/architecture.md)
+- [Architecture Overview](docs/ARCHITECTURE.md)
+- [Project Audit](docs/PROJECT_AUDIT.md)
+- [Auth Audit](docs/AUTH_AUDIT.md)
+- [Policy Engine](docs/POLICY_ENGINE.md)
+- [Investigator Agent](docs/INVESTIGATOR_AGENT.md)
+- [PII Security](docs/PII_SECURITY.md)
+- [Gateway Guide](docs/GATEWAY_GUIDE.md)
 - [Protocol Specification](docs/PROTOCOL_SPEC.md)
 - [Firewall Test Results](docs/firewall_results.md)
 - [Trust Score Simulation](docs/trust_score_simulation.md)

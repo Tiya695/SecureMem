@@ -1,3 +1,5 @@
+from typing import Optional
+
 import httpx
 
 
@@ -26,23 +28,24 @@ class SecureMemClient:
     Client for the SecureMem Protocol.
 
     Example:
-        client = SecureMemClient("http://127.0.0.1:8002", agent_id="agent_A", role="AGENT")
+        client = SecureMemClient("http://127.0.0.1:8000", agent_id="agent_A", role="AGENT")
         mem_id = client.write_memory("User likes tea", namespace="agent_A_personal")
         results = client.search_memory("What drinks?", namespace="agent_A_personal")
     """
 
-    def __init__(self, base_url: str, agent_id: str, role: str, trust_base_url: str = None):
+    def __init__(self, base_url: str, agent_id: str, role: str, trust_base_url: str = None, admin_secret: Optional[str] = None):
         self.base_url = base_url.rstrip("/")
         self.trust_base_url = (trust_base_url or base_url).rstrip("/")
         self.agent_id = agent_id
         self.role = role
+        self.admin_secret = admin_secret  # only required when role="ADMIN", see memory/auth.py
         self.token = self._get_token()
 
     def _get_token(self) -> str:
-        response = httpx.post(f"{self.base_url}/auth/token", json={
-            "agent_id": self.agent_id,
-            "role": self.role
-        })
+        payload = {"agent_id": self.agent_id, "role": self.role}
+        if self.admin_secret is not None:
+            payload["admin_secret"] = self.admin_secret
+        response = httpx.post(f"{self.base_url}/auth/token", json=payload)
         if response.status_code != 200:
             raise AuthenticationError(f"Failed to obtain token: {response.text}")
         return response.json()["access_token"]
@@ -102,3 +105,43 @@ class SecureMemClient:
         response = httpx.get(f"{self.trust_base_url}/trust/score/{self.agent_id}")
         self._handle_errors(response)
         return response.json()
+
+    def rollback_memory(self, memory_id: str, version: int) -> dict:
+        """ADMIN role only — restores a memory to a prior version (Phase 7)."""
+        response = httpx.post(
+            f"{self.base_url}/memory/{memory_id}/rollback/{version}",
+            headers=self._headers(),
+        )
+        self._handle_errors(response)
+        return response.json()
+
+    def protect(self, prompt: str) -> dict:
+        """Runs a prompt through the SecureMem security pipeline WITHOUT writing anything or
+        calling an LLM — the 'protect this prompt before you use it' entry point the
+        integration examples (examples/basic_python_app.py etc) are built around.
+        Returns {safe: bool, reason: str, confidence: float}."""
+        response = httpx.post(
+            f"{self.base_url}/firewall/check",
+            json={"prompt": prompt, "agent_id": self.agent_id},
+        )
+        self._handle_errors(response)
+        data = response.json()
+        policy = data.get("policy", {})
+        investigator = data.get("investigator")
+        blocked = policy.get("action") in ("BLOCK", "QUARANTINE") or (
+            policy.get("action") == "FLAG" and investigator and investigator.get("decision") in ("QUARANTINE", "ESCALATE")
+        )
+        return {
+            "safe": not blocked,
+            "reason": (investigator or {}).get("reasoning") or data.get("reason"),
+            "confidence": data.get("confidence"),
+            "attack_type": data.get("attack_type"),
+        }
+
+
+def connect(base_url: str, agent_id: str, role: str = "AGENT", admin_secret: Optional[str] = None) -> "SecureMemClient":
+    """Friendlier entry point matching the playbook's connect(base_url, api_key, agent_id)
+    naming — this project authenticates via a self-issued JWT (agent_id + role), not a static
+    api_key, so the parameter here is `role`/`admin_secret` instead. Equivalent to
+    SecureMemClient(base_url, agent_id, role, admin_secret)."""
+    return SecureMemClient(base_url, agent_id=agent_id, role=role, admin_secret=admin_secret)

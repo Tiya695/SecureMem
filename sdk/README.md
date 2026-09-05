@@ -1,156 +1,102 @@
-\# SecureMem SDK
+# SecureMem SDK
 
+A simple Python client for the SecureMem Protocol — secure, namespace-isolated, encrypted memory
+for multi-agent AI systems.
 
+## Installation
 
-A simple Python client for the SecureMem Protocol — secure, namespace-isolated,
-
-encrypted memory for multi-agent AI systems.
-
-
-
-\## Installation
-
-
-
-Copy `securemem\_sdk.py` into your project, or import it directly (it only
-
-requires `httpx`):
-
-
+Copy `securemem_sdk.py` into your project, or import it directly (it only requires `httpx`):
 
 ```bash
-
 pip install httpx
-
 ```
 
-
-
-\## Quick Start
-
-
+## Quick Start
 
 ```python
+from securemem_sdk import SecureMemClient, AccessDeniedError, NotFoundError
 
-from securemem\_sdk import SecureMemClient, AccessDeniedError, NotFoundError
-
-
-
-\# Connect as an AGENT — automatically authenticates and gets a token
-
+# Connect as an AGENT — automatically authenticates and gets a token
 client = SecureMemClient(
-
-&#x20;   base\_url="http://127.0.0.1:8002",
-
-&#x20;   agent\_id="my\_agent",
-
-&#x20;   role="AGENT"
-
+    base_url="http://127.0.0.1:8000",
+    agent_id="my_agent",
+    role="AGENT"
 )
 
-
-
-\# Write a memory
-
-memory\_id = client.write\_memory(
-
-&#x20;   content="User prefers dark mode",
-
-&#x20;   namespace="my\_agent\_personal"
-
+# Write a memory
+memory_id = client.write_memory(
+    content="User prefers dark mode",
+    namespace="my_agent_personal"
 )
+print("Stored:", memory_id)
 
-print("Stored:", memory\_id)
-
-
-
-\# Search memories
-
-results = client.search\_memory(
-
-&#x20;   query="What are the user's UI preferences?",
-
-&#x20;   namespace="my\_agent\_personal",
-
-&#x20;   top\_k=3
-
+# Search memories
+results = client.search_memory(
+    query="What are the user's UI preferences?",
+    namespace="my_agent_personal",
+    top_k=3
 )
-
 for r in results:
+    print(r["content"])
 
-&#x20;   print(r\["content"])
-
-
-
-\# Delete a memory
-
-client.delete\_memory(memory\_id)
-
+# Delete a memory
+client.delete_memory(memory_id)
 ```
 
+## Protecting an existing LLM app in one line
 
+```python
+check = client.protect(user_input)
+if not check["safe"]:
+    print("Blocked:", check["reason"])
+else:
+    call_your_llm(user_input)
+```
 
-\## Roles
+`protect()` runs a prompt through the full SecureMem security pipeline (firewall, PII, poison,
+policy engine, Investigator Agent) without writing anything or calling an LLM itself — see
+`examples/basic_python_app.py` and `examples/securemem_openai.py` for complete integration
+examples.
 
-
+## Roles
 
 | Role     | Can Write/Delete | Can Search        |
-
 |----------|-------------------|-------------------|
-
 | ADMIN    | Any namespace      | Any namespace      |
-
 | AGENT    | Own namespace only | Own namespace only |
-
 | READONLY | No                 | Own namespace only |
 
-
-
-A namespace "belongs" to an agent if it equals the `agent\_id` or starts with
-
-`{agent\_id}\_` (e.g., `my\_agent\_personal`).
-
-
-
-\## Error Handling
-
-
+A namespace "belongs" to an agent if it equals the `agent_id` or starts with `{agent_id}_`
+(e.g., `my_agent_personal`). Minting an ADMIN-role token requires `admin_secret` to match the
+server's `ADMIN_BOOTSTRAP_SECRET`:
 
 ```python
-
-try:
-
-&#x20;   client.search\_memory("query", namespace="someone\_elses\_namespace")
-
-except AccessDeniedError as e:
-
-&#x20;   print("Blocked by RBAC:", e)
-
-except AuthenticationError as e:
-
-&#x20;   print("Auth problem:", e)
-
-except NotFoundError as e:
-
-&#x20;   print("Not found:", e)
-
-except SecureMemError as e:
-
-&#x20;   print("Other error:", e)
-
+admin = SecureMemClient(base_url="http://127.0.0.1:8000", agent_id="admin_user", role="ADMIN",
+                         admin_secret="the-server's-ADMIN_BOOTSTRAP_SECRET")
 ```
 
+## Error Handling
 
+```python
+try:
+    client.search_memory("query", namespace="someone_elses_namespace")
+except AccessDeniedError as e:
+    print("Blocked by RBAC:", e)
+except AuthenticationError as e:
+    print("Auth problem:", e)
+except NotFoundError as e:
+    print("Not found:", e)
+except SecureMemError as e:
+    print("Other error:", e)
+```
 
-\## Methods
+## Methods
 
-
-
-\- `write\_memory(content, namespace, metadata=None) -> memory\_id`
-
-\- `search\_memory(query, namespace, top\_k=5) -> list of matches`
-
-\- `delete\_memory(memory\_id) -> bool`
-
-\- `get\_trust\_score() -> dict` (requires the trust engine API, e.g., port 8000)
-
+- `connect(base_url, agent_id, role="AGENT", admin_secret=None) -> SecureMemClient` — module-level
+  convenience constructor.
+- `protect(prompt) -> {safe, reason, confidence, attack_type}` — security-check only, no LLM call.
+- `write_memory(content, namespace, metadata=None) -> memory_id`
+- `search_memory(query, namespace, top_k=5) -> list of matches`
+- `delete_memory(memory_id) -> bool`
+- `rollback_memory(memory_id, version) -> dict` — ADMIN role only.
+- `get_trust_score() -> dict`
