@@ -1,0 +1,16 @@
+.git
+.gitignore
+.env
+.env.example
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+chroma_data/
+components/
+node_modules/
+*.md
+docs/
+tests/
+.claude/
+REACT_SETUP_GUIDE.md

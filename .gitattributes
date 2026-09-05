@@ -1,0 +1,7 @@
+# docker/entrypoint.sh runs inside a Linux container via #!/bin/sh — if Git's core.autocrlf
+# (commonly "true" on Windows) converts it to CRLF on checkout, the container's shell fails to
+# parse the shebang and the entrypoint breaks. Force LF for anything that has to run on Linux
+# regardless of the checking-out machine's line-ending settings.
+*.sh text eol=lf
+docker/* text eol=lf
+Dockerfile text eol=lf

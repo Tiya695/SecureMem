@@ -1,0 +1,47 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg15
+    container_name: securemem-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres123}
+      POSTGRES_DB: ${POSTGRES_DB:-securemem}
+    volumes:
+      - securemem_pgdata:/var/lib/postgresql/data
+      - ./docker/init-pgvector.sql:/docker-entrypoint-initdb.d/init-pgvector.sql:ro
+    ports:
+      - "${POSTGRES_HOST_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  securemem-api:
+    build: .
+    container_name: securemem-api
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres123}@postgres:5432/${POSTGRES_DB:-securemem}
+      GROQ_API_KEY: ${GROQ_API_KEY}
+      GROQ_MODEL: ${GROQ_MODEL:-openai/gpt-oss-20b}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY}
+      ADMIN_BOOTSTRAP_SECRET: ${ADMIN_BOOTSTRAP_SECRET}
+      SECUREMEM_LLM_PROVIDER: ${SECUREMEM_LLM_PROVIDER:-groq}
+      FRONTEND_URL: ${FRONTEND_URL:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+    # Host port is overridable — see docs/DOCKER.md if 8000 is already taken on your machine
+    # (e.g. by another project's container).
+    ports:
+      - "${HOST_PORT:-8000}:8000"
+    volumes:
+      - securemem_chroma:/app/chroma_data
+
+volumes:
+  securemem_pgdata:
+  securemem_chroma:
