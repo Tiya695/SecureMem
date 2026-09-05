@@ -65,7 +65,7 @@ class TokenRequest(BaseModel):
 
 
 @router.post("/auth/token")
-@limiter.limit("20/minute")
+@limiter.limit("60/minute")
 def get_token(request: Request, req: TokenRequest):
     if req.role not in ("ADMIN", "AGENT", "READONLY"):
         raise HTTPException(status_code=400, detail="Role must be ADMIN, AGENT, or READONLY")
@@ -123,6 +123,18 @@ def write_memory(request: Request, req: WriteRequest, current_agent: dict = Depe
         final_decision=policy_result["action"],
         policy_rule_triggered=policy_result["policy_rule_triggered"],
     )
+
+    if policy_result["action"] in ("BLOCK", "QUARANTINE"):
+        from firewall.replay import record_replay_event
+        record_replay_event(
+            agent_id=req.agent_id,
+            original_input=req.content,
+            pii_result=pii_result,
+            poison_result=poison_result,
+            policy_decision=policy_result,
+            trust_before=trust_score,
+            trust_after=trust_score,
+        )
 
     if policy_result["action"] == "BLOCK":
         log_provenance("write_blocked", "n/a", req.agent_id, "blocked", **policy_log_fields)

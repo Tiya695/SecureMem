@@ -21,7 +21,7 @@ before Batch 2, then the fix applied.
 
 | Endpoint | Limit |
 |---|---|
-| `POST /auth/token` | 20/minute per IP |
+| `POST /auth/token` | 60/minute per IP |
 | `POST /firewall/check` | 30/minute per IP |
 | `POST /memory/write` | 20/minute per IP |
 
@@ -29,9 +29,16 @@ before Batch 2, then the fix applied.
 request goes through this same endpoint (there is no separate account system), and it is called
 once per `simulation.html` demo run plus multiple times per test file. `5/minute` shared across
 one IP made the live sandbox demo and the test suite itself hit the limit and start failing.
-`ADMIN_BOOTSTRAP_SECRET` is a random 32-byte token — brute-forcing it isn't meaningfully slowed by
-5 vs 20 attempts/minute either way — so `20/minute` keeps real abuse-resistance while not breaking
-routine AGENT/READONLY usage.
+Raised to `20/minute` in Batch 2, then to **`60/minute`** here once the test suite grew past
+~10 files — running the *whole* suite (`pytest tests/`) mints a fresh token in nearly every test
+across ~90+ tests, comfortably exceeding 20/minute within a normal ~2-minute run and causing
+false `KeyError`/403 failures unrelated to any real bug (confirmed by re-running the exact same
+failing tests after waiting out the window — they passed). `ADMIN_BOOTSTRAP_SECRET` is a random
+32-byte token — brute-forcing it isn't meaningfully slowed by 20 vs 60 attempts/minute either way
+— so `60/minute` keeps real abuse-resistance while not breaking a growing test suite that all
+runs from one shared IP. `tests/conftest.py` also adds a session-scoped `admin_token` fixture so
+future tests can share one ADMIN token instead of each minting its own, which is the more
+durable fix as the suite keeps growing (see docs/SECURITY_TEST_RESULTS.md).
 
 ## CORS
 

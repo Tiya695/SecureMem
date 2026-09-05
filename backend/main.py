@@ -15,6 +15,7 @@ from firewall.provenance import router as provenance_router
 from firewall.trust_engine import router as trust_router
 from firewall.policy_engine import router as policy_router
 from firewall.investigator_agent import router as investigator_router
+from firewall.replay import router as replay_router
 from memory.api import router as memory_router
 from backend.gateway import router as gateway_router
 from groq import Groq
@@ -96,6 +97,7 @@ app.include_router(provenance_router)
 app.include_router(trust_router)
 app.include_router(policy_router)
 app.include_router(investigator_router)
+app.include_router(replay_router)
 app.include_router(memory_router)
 app.include_router(gateway_router)
 
@@ -330,6 +332,18 @@ Respond ONLY in this exact JSON format:
                 source="investigator_agent",
                 investigator_verdict=investigation,
             )
+
+    if policy_result["action"] != "ALLOW":
+        from firewall.replay import record_replay_event
+        record_replay_event(
+            agent_id=body.agent_id,
+            original_input=body.prompt,
+            firewall_result=result,
+            policy_decision=policy_result,
+            investigator_result=response.get("investigator"),
+            trust_before=trust_before,
+            trust_after=trust_after,
+        )
 
     return response
 
