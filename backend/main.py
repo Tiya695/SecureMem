@@ -4,6 +4,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, RedirectResponse, JSONResponse
 from dotenv import load_dotenv
 from pydantic import BaseModel, Field
+from typing import Optional
 import chromadb
 from sentence_transformers import SentenceTransformer
 from slowapi import _rate_limit_exceeded_handler
@@ -359,27 +360,65 @@ def get_agents():
         agents = ["SupportAgent_01", "DataCruncher_X", "MemoryBot_03", "QueryAgent_07", "RogueTest_99"]
     return {"agents": agents}
 
+def _real_memory_count() -> int:
+    """Real count of stored memories from Postgres. Returns 0 (not a fabricated placeholder) if
+    the DB is unreachable — matches this endpoint's existing tolerance for missing infra."""
+    try:
+        from sqlalchemy import func, select
+        from memory.database import SessionLocal
+        from memory.models import Memory
+        db = SessionLocal()
+        try:
+            return db.scalar(select(func.count()).select_from(Memory)) or 0
+        finally:
+            db.close()
+    except Exception:
+        return 0
+
+
+def _last_evaluated_groq_f1() -> Optional[float]:
+    """Reads the real F1 score from the last time testing/eval_all_models.py was actually run
+    (docs/MULTI_LLM_RESULTS.md) rather than hardcoding a number — see docs/PROJECT_AUDIT.md for
+    why a hardcoded '1.00' here would be exactly the kind of unverified claim this project
+    audited itself for. Returns None if no evaluation has been run yet."""
+    try:
+        results_path = os.path.join(os.path.dirname(__file__), "..", "docs", "MULTI_LLM_RESULTS.md")
+        with open(results_path, encoding="utf-8") as f:
+            for line in f:
+                if line.strip().startswith("| groq "):
+                    cols = [c.strip() for c in line.strip().strip("|").split("|")]
+                    # | Provider | Status | TP | TN | FP | FN | Precision | Recall | F1 | Avg Latency |
+                    return float(cols[8])
+    except Exception:
+        return None
+    return None
+
+
 @app.get("/api/stats")
 def get_stats():
-    """Return dashboard stats from real backend data"""
+    """Return dashboard stats from real backend data — no padding, no hardcoded placeholders."""
     from firewall.trust_engine import agent_history, get_or_create_agent, calculate_trust_score
     from firewall.provenance import provenance_logs
-    
+
     blocked = len([l for l in provenance_logs if l.get("outcome") == "blocked"])
-    total = len(provenance_logs)
-    
-    known_agents = ["SupportAgent_01", "DataCruncher_X", "MemoryBot_03", "QueryAgent_07", "RogueTest_99"]
+
+    # Use real tracked agents once any exist; fall back to the same 5-name demo set /api/agents
+    # already falls back to on a freshly-started server with no traffic yet (a zero-state
+    # fallback, not a pad on top of real numbers).
+    agent_ids = list(agent_history.keys()) or ["SupportAgent_01", "DataCruncher_X", "MemoryBot_03", "QueryAgent_07", "RogueTest_99"]
     scores = []
-    for ag in known_agents:
+    for ag in agent_ids:
         get_or_create_agent(ag)
         scores.append(calculate_trust_score(ag))
-    avg_trust = sum(scores) / len(scores) if scores else 0.84
-    
+    avg_trust = sum(scores) / len(scores) if scores else 1.0
+
+    f1 = _last_evaluated_groq_f1()
+
     return {
-        "intercepted_attacks": max(blocked, 25),
+        "intercepted_attacks": blocked,
         "avg_trust_score": round(avg_trust, 2),
-        "safe_memories": 45205,
-        "f1_score": 1.00,
+        "safe_memories": _real_memory_count(),
+        "f1_score": f1,
         "blocked_agents": len([s for s in scores if s < 0.3])
     }
 
