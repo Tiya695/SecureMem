@@ -146,6 +146,14 @@ input::placeholder{color:var(--muted)}
 
 </style>
 </head>
+<script>
+// ============================================================
+// API_BASE — change this ONE line when deploying to production
+// ============================================================
+const API_BASE = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+  ? 'http://localhost:8000'
+  : 'https://securemem-api.onrender.com'; // update this when deployed
+</script>
 <body>
 
 
@@ -243,7 +251,7 @@ async function handleLogin(){
   btn.disabled=true;btn.textContent='Signing in...';
   try{
     // Try Shreya's JWT auth endpoint
-    const res=await fetch('http://localhost:8000/auth/token',{
+    const res=await fetch(API_BASE + '/auth/token',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({agent_id:email,role:'AGENT'})

@@ -1,9 +1,10 @@
-from fastapi import APIRouter, HTTPException, Depends
-from pydantic import BaseModel
+from fastapi import APIRouter, HTTPException, Depends, Request
+from pydantic import BaseModel, Field
 from sentence_transformers import SentenceTransformer
 from sqlalchemy import select, delete
 from typing import Optional
 from datetime import datetime
+import os
 import uuid
 import httpx
 
@@ -11,6 +12,7 @@ from memory.database import SessionLocal
 from memory.models import Memory
 from memory.encryption import encrypt, decrypt
 from memory.auth import create_access_token, get_current_agent, check_namespace_access, check_write_permission
+from firewall.rate_limit import limiter
 
 router = APIRouter()
 
@@ -44,18 +46,33 @@ class DeleteRequest(BaseModel):
 class TokenRequest(BaseModel):
     agent_id: str
     role: str  # ADMIN, AGENT, READONLY
+    admin_secret: Optional[str] = None  # required only when role == ADMIN, see Phase 2/3 hardening
 
 
 @router.post("/auth/token")
-def get_token(req: TokenRequest):
+@limiter.limit("20/minute")
+def get_token(request: Request, req: TokenRequest):
     if req.role not in ("ADMIN", "AGENT", "READONLY"):
         raise HTTPException(status_code=400, detail="Role must be ADMIN, AGENT, or READONLY")
+
+    # Phase 2/3 hardening: previously ANY caller could self-issue a valid ADMIN token just by
+    # declaring role="ADMIN" — no credential check existed at all. There is no real user/account
+    # database in this project (AGENT/READONLY remain self-service by design for the demo), so the
+    # minimal fix that doesn't require building a full accounts system is to gate ADMIN issuance
+    # behind a shared secret the operator sets in .env. If ADMIN_BOOTSTRAP_SECRET is unset, ADMIN
+    # tokens cannot be minted at all (fail closed).
+    if req.role == "ADMIN":
+        expected = os.getenv("ADMIN_BOOTSTRAP_SECRET")
+        if not expected or req.admin_secret != expected:
+            raise HTTPException(status_code=403, detail="Invalid or missing admin_secret for ADMIN role")
+
     token = create_access_token(req.agent_id, req.role)
     return {"access_token": token, "token_type": "bearer", "agent_id": req.agent_id, "role": req.role}
 
 
 @router.post("/memory/write")
-def write_memory(req: WriteRequest, current_agent: dict = Depends(get_current_agent)):
+@limiter.limit("20/minute")
+def write_memory(request: Request, req: WriteRequest, current_agent: dict = Depends(get_current_agent)):
     check_write_permission(current_agent)
     check_namespace_access(current_agent, req.namespace)
 

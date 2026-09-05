@@ -44,6 +44,23 @@ the batches following this audit close.
 
 ---
 
+## Additional finding during Batch 2 verification: dead LLM classifier model
+
+While running the test suite live against the server, `/firewall/check` was found to be silently
+falling back to its keyword-matching branch on *every* request — the configured
+`GROQ_MODEL=llama-3.1-8b-instant` no longer exists on Groq's API (`404 model_not_found`; confirmed
+via `client.models.list()`, which no longer lists any `llama-3.x` model at all). This means the
+"Groq LLaMA classifier" the README and `docs/firewall_results.md` describe has likely been running
+as the much weaker keyword fallback for some time, which calls into question the historical
+"F1 = 1.00 / 25 attacks caught" figures (they may have been computed before Groq deprecated the
+model, or against the fallback path — undetermined from the repo alone).
+
+**Fixed:** `.env`'s `GROQ_MODEL` updated to `openai/gpt-oss-20b` (verified live against Groq: fast,
+returns clean JSON matching the classifier's expected schema, correctly classifies both the
+previously-failing extraction-attack test case and normal prompts). `.env.example` documents why.
+Real F1/precision/recall numbers should be re-run (see Batch 11 / `docs/MULTI_LLM_RESULTS.md`)
+now that the classifier is actually calling an LLM again rather than the keyword fallback.
+
 ## Summary of INSECURE findings (highest priority)
 
 1. `POST /auth/token` mints a valid ADMIN JWT for any caller with zero credential check.

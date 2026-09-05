@@ -1,12 +1,18 @@
+import os
 import httpx
+from dotenv import load_dotenv
+
+load_dotenv()
 
 BASE_URL = "http://127.0.0.1:8000"
 
 
 def get_admin_token():
+    # Phase 2/3 hardening: ADMIN token issuance now requires ADMIN_BOOTSTRAP_SECRET.
     response = httpx.post(f"{BASE_URL}/auth/token", json={
         "agent_id": "test_admin",
-        "role": "ADMIN"
+        "role": "ADMIN",
+        "admin_secret": os.getenv("ADMIN_BOOTSTRAP_SECRET"),
     })
     return response.json()["access_token"]
 
