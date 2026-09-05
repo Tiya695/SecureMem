@@ -1,7 +1,5 @@
 # SecureMem — Secure Multi-Agent Memory Infrastructure
 
-> **BTEC Level 3 Final Year Project** | Tiya Rai & Shreya Shahid | 2026
-
 A production-ready AI security system that protects multi-agent memory from prompt injection attacks, memory poisoning, and rogue agent behaviour — with real-time trust scoring, AES-256 encryption, JWT authentication, and a live admin dashboard.
 
 ---
@@ -19,14 +17,7 @@ A production-ready AI security system that protects multi-agent memory from prom
 
 ---
 
-## 👥 Team
 
-| Member | GitHub | Responsibilities |
-|--------|--------|-----------------|
-| **Tiya Rai** | [@Tiya695](https://github.com/Tiya695) | Prompt injection firewall, poison detection, trust scoring engine, provenance tracker, frontend dashboard |
-| **Shreya Shahid** | [@shreyashahidz](https://github.com/shreyashahidz) | PostgreSQL + pgvector database, AES-256 encryption, JWT authentication, Python SDK, ChromaDB vector store |
-
----
 
 ## 🏗️ Project Structure
 
