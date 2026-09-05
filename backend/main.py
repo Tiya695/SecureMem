@@ -13,6 +13,8 @@ from firewall.rate_limit import limiter
 from firewall.poison_detector import router as poison_router
 from firewall.provenance import router as provenance_router
 from firewall.trust_engine import router as trust_router
+from firewall.policy_engine import router as policy_router
+from firewall.investigator_agent import router as investigator_router
 from memory.api import router as memory_router
 from groq import Groq
 import logging
@@ -91,6 +93,8 @@ async def global_exception_handler(request: Request, exc: Exception):
 app.include_router(poison_router)
 app.include_router(provenance_router)
 app.include_router(trust_router)
+app.include_router(policy_router)
+app.include_router(investigator_router)
 app.include_router(memory_router)
 
 model = SentenceTransformer('all-MiniLM-L6-v2')
@@ -273,7 +277,45 @@ Respond ONLY in this exact JSON format:
             "outcome": "blocked"
         })
 
-    return {"agent_id": body.agent_id, **result}
+    # Phase 6/8: run the result through the policy engine — the fields below are purely
+    # additive to this endpoint's response, existing consumers (e.g. simulation.html, which only
+    # reads is_injection/confidence/attack_type/reason) are unaffected.
+    from firewall.trust_engine import calculate_trust_score
+    from firewall.policy_engine import evaluate as evaluate_policy, add_to_quarantine
+    trust_score = calculate_trust_score(body.agent_id)
+    policy_result = evaluate_policy(
+        injection_result=result,
+        trust_score=trust_score,
+        agent_id=body.agent_id,
+    )
+    response = {"agent_id": body.agent_id, **result, "policy": policy_result}
+
+    if policy_result["action"] == "QUARANTINE":
+        add_to_quarantine(
+            agent_id=body.agent_id,
+            content=body.prompt,
+            risk_score=policy_result["risk_score"],
+            reason=policy_result["reason"],
+            source="policy_engine",
+        )
+    elif policy_result["action"] == "FLAG":
+        # The Investigator Agent takes over for medium-confidence (0.40-0.85) cases: it pulls
+        # this agent's trust history + similar past memories via tool calls, reasons over both
+        # plus the current input with an LLM, and decides AUTO_CLEAR / QUARANTINE / ESCALATE.
+        from firewall.investigator_agent import investigate
+        investigation = investigate(body.agent_id, body.prompt, result, policy_result)
+        response["investigator"] = investigation
+        if investigation["decision"] in ("QUARANTINE", "ESCALATE"):
+            add_to_quarantine(
+                agent_id=body.agent_id,
+                content=body.prompt,
+                risk_score=policy_result["risk_score"],
+                reason=investigation["reasoning"],
+                source="investigator_agent",
+                investigator_verdict=investigation,
+            )
+
+    return response
 
 
 

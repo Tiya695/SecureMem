@@ -65,19 +65,18 @@ def check_outlier(content: str) -> tuple[bool, str]:
         return True, f"Memory is an outlier (avg similarity: {avg_similarity:.2f})"
     return False, f"Memory fits normal pattern (avg similarity: {avg_similarity:.2f})"
 
-@router.post("/firewall/check-memory")
-def check_memory(request: MemoryRequest):
+def assess_poison(content: str) -> dict:
+    """Pure function version of the poison check, reusable by both the HTTP endpoint and the
+    memory-write pipeline (Batch 5) without a self-referential HTTP call."""
     reasons = []
     is_poisoned = False
 
-    # Check 1 — keyword check
-    keyword_flag, keyword_reason = check_keywords(request.content)
+    keyword_flag, keyword_reason = check_keywords(content)
     if keyword_flag:
         is_poisoned = True
         reasons.append(keyword_reason)
 
-    # Check 2 — outlier check
-    outlier_flag, outlier_reason = check_outlier(request.content)
+    outlier_flag, outlier_reason = check_outlier(content)
     if outlier_flag:
         is_poisoned = True
         reasons.append(outlier_reason)
@@ -87,5 +86,18 @@ def check_memory(request: MemoryRequest):
     return {
         "is_poisoned": is_poisoned,
         "reason": "; ".join(reasons) if reasons else "Memory appears clean",
-        "confidence": confidence
+        "confidence": confidence,
     }
+
+
+def memory_risk_score(injection_confidence: float = 0.0, poison_confidence: float = 0.0, has_pii: bool = False) -> float:
+    """Phase 6 — combines injection probability, poison probability, and PII presence into a
+    single 0.0-1.0 risk score used by the policy engine's QUARANTINE threshold."""
+    pii_component = 0.3 if has_pii else 0.0
+    score = (0.5 * injection_confidence) + (0.4 * poison_confidence) + pii_component
+    return round(min(1.0, score), 4)
+
+
+@router.post("/firewall/check-memory")
+def check_memory(request: MemoryRequest):
+    return assess_poison(request.content)

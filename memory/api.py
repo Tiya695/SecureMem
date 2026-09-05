@@ -86,6 +86,36 @@ def write_memory(request: Request, req: WriteRequest, current_agent: dict = Depe
     pii_result = detect_pii(clean_content)
     stored_content = pii_result["redacted_text"] if pii_result["has_pii"] else clean_content
 
+    # Phase 6/8: run the sanitized+redacted content through the poison detector and policy
+    # engine before anything is persisted.
+    from firewall.poison_detector import assess_poison
+    from firewall.trust_engine import calculate_trust_score
+    from firewall.policy_engine import evaluate as evaluate_policy, add_to_quarantine
+
+    poison_result = assess_poison(stored_content)
+    trust_score = calculate_trust_score(req.agent_id)
+    policy_result = evaluate_policy(
+        pii_result=pii_result,
+        poison_result=poison_result,
+        trust_score=trust_score,
+        agent_id=req.agent_id,
+    )
+
+    if policy_result["action"] == "BLOCK":
+        log_provenance("write_blocked", "n/a", req.agent_id, "blocked")
+        return {"status": "blocked", "reason": policy_result["reason"], "policy": policy_result}
+
+    if policy_result["action"] == "QUARANTINE":
+        quarantine_id = add_to_quarantine(
+            agent_id=req.agent_id,
+            content=stored_content,
+            risk_score=policy_result["risk_score"],
+            reason=policy_result["reason"],
+            source="policy_engine",
+        )
+        log_provenance("write_quarantined", quarantine_id, req.agent_id, "quarantined")
+        return {"status": "quarantined", "quarantine_id": quarantine_id, "policy": policy_result}
+
     embedding = model.encode(stored_content).tolist()
     db = SessionLocal()
     try:
@@ -104,7 +134,7 @@ def write_memory(request: Request, req: WriteRequest, current_agent: dict = Depe
             # list beyond what's needed to audit the policy — memory_id lets an admin trace it.
             log_provenance("write_pii_redacted", mem.id, req.agent_id, "redacted")
         log_provenance("write", mem.id, req.agent_id, "success")
-        return {"status": "stored", "id": mem.id}
+        return {"status": "stored", "id": mem.id, "policy": policy_result}
     finally:
         db.close()
 

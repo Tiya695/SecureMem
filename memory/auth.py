@@ -1,4 +1,4 @@
-from fastapi import Header, HTTPException
+from fastapi import Header, HTTPException, Depends
 from jose import jwt, JWTError
 from dotenv import load_dotenv
 from datetime import datetime, timedelta
@@ -50,3 +50,11 @@ def check_write_permission(current_agent: dict):
     """READONLY role cannot write or delete."""
     if current_agent["role"] == "READONLY":
         raise HTTPException(status_code=403, detail="Access denied: READONLY role cannot write or delete")
+
+
+def require_admin(current_agent: dict = Depends(get_current_agent)) -> dict:
+    """FastAPI dependency: 403s unless the caller's role is ADMIN. Use on admin-only endpoints
+    (quarantine review, investigator logs, provenance filters, memory versioning/rollback, etc)."""
+    if current_agent["role"] != "ADMIN":
+        raise HTTPException(status_code=403, detail="Access denied: ADMIN role required")
+    return current_agent
