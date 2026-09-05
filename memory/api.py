@@ -14,6 +14,7 @@ from memory.encryption import encrypt, decrypt
 from memory.auth import create_access_token, get_current_agent, check_namespace_access, check_write_permission
 from firewall.rate_limit import limiter
 from firewall.sanitizer import sanitize_text
+from firewall.pii_detector import detect_pii
 
 router = APIRouter()
 
@@ -80,19 +81,28 @@ def write_memory(request: Request, req: WriteRequest, current_agent: dict = Depe
     # Phase 4: strip <script> blocks / on*= handlers before this content is embedded or stored.
     clean_content = sanitize_text(req.content)
 
-    embedding = model.encode(clean_content).tolist()
+    # Phase 5: detect and redact PII before anything is embedded or stored. The redacted text
+    # (never the raw PII) is what gets embedded/encrypted/logged.
+    pii_result = detect_pii(clean_content)
+    stored_content = pii_result["redacted_text"] if pii_result["has_pii"] else clean_content
+
+    embedding = model.encode(stored_content).tolist()
     db = SessionLocal()
     try:
         mem = Memory(
             id=str(uuid.uuid4()),
             agent_id=req.agent_id,
-            content=encrypt(clean_content),
+            content=encrypt(stored_content),
             embedding=embedding,
             namespace=req.namespace,
             extra_metadata=req.metadata
         )
         db.add(mem)
         db.commit()
+        if pii_result["has_pii"]:
+            # Log that PII was found + redacted, but never the raw PII itself or the pii_types
+            # list beyond what's needed to audit the policy — memory_id lets an admin trace it.
+            log_provenance("write_pii_redacted", mem.id, req.agent_id, "redacted")
         log_provenance("write", mem.id, req.agent_id, "success")
         return {"status": "stored", "id": mem.id}
     finally:
