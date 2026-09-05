@@ -102,15 +102,15 @@ MODEL = os.getenv("GROQ_MODEL")
 
 
 class Memory(BaseModel):
-    text: str
+    text: str = Field(..., max_length=10_000)
 
 class Query(BaseModel):
-    text: str
-    n_results: int = 2
+    text: str = Field(..., max_length=2_000)
+    n_results: int = Field(2, ge=1, le=50)
 
 class PromptRequest(BaseModel):
-    prompt: str
-    agent_id: str = "default_agent"
+    prompt: str = Field(..., max_length=10_000)
+    agent_id: str = Field("default_agent", max_length=200)
 
 
 # Clean URL routes - no .html needed
@@ -171,12 +171,14 @@ def health():
 
 @app.post("/add_memory")
 def add_memory(memory: Memory):
+    from firewall.sanitizer import sanitize_text
+    clean_text = sanitize_text(memory.text)
     count = collection.count()
-    embedding = model.encode(memory.text).tolist()
+    embedding = model.encode(clean_text).tolist()
     collection.add(
         ids=[f"mem_{count}"],
         embeddings=[embedding],
-        documents=[memory.text]
+        documents=[clean_text]
     )
     return {"status": "stored", "id": f"mem_{count}"}
 

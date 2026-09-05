@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 import numpy as np
 
 router = APIRouter()
@@ -22,8 +22,8 @@ memory_store = [
 ]
 
 class MemoryRequest(BaseModel):
-    content: str
-    agent_id: str
+    content: str = Field(..., max_length=10_000)
+    agent_id: str = Field(..., max_length=200)
 
 def check_keywords(content: str) -> tuple[bool, str]:
     content_lower = content.lower()

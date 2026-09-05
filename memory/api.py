@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends, Request
+from fastapi import APIRouter, HTTPException, Depends, Request, Query
 from pydantic import BaseModel, Field
 from sentence_transformers import SentenceTransformer
 from sqlalchemy import select, delete
@@ -13,6 +13,7 @@ from memory.models import Memory
 from memory.encryption import encrypt, decrypt
 from memory.auth import create_access_token, get_current_agent, check_namespace_access, check_write_permission
 from firewall.rate_limit import limiter
+from firewall.sanitizer import sanitize_text
 
 router = APIRouter()
 
@@ -33,20 +34,20 @@ def log_provenance(operation: str, memory_id: str, agent_id: str, outcome: str):
 
 
 class WriteRequest(BaseModel):
-    agent_id: str
-    content: str
-    namespace: str
+    agent_id: str = Field(..., max_length=200)
+    content: str = Field(..., max_length=10_000)
+    namespace: str = Field(..., max_length=200)
     metadata: Optional[dict] = {}
 
 
 class DeleteRequest(BaseModel):
-    memory_id: str
+    memory_id: str = Field(..., max_length=200)
 
 
 class TokenRequest(BaseModel):
-    agent_id: str
+    agent_id: str = Field(..., max_length=200)
     role: str  # ADMIN, AGENT, READONLY
-    admin_secret: Optional[str] = None  # required only when role == ADMIN, see Phase 2/3 hardening
+    admin_secret: Optional[str] = Field(None, max_length=200)  # required only when role == ADMIN, see Phase 2/3 hardening
 
 
 @router.post("/auth/token")
@@ -76,13 +77,16 @@ def write_memory(request: Request, req: WriteRequest, current_agent: dict = Depe
     check_write_permission(current_agent)
     check_namespace_access(current_agent, req.namespace)
 
-    embedding = model.encode(req.content).tolist()
+    # Phase 4: strip <script> blocks / on*= handlers before this content is embedded or stored.
+    clean_content = sanitize_text(req.content)
+
+    embedding = model.encode(clean_content).tolist()
     db = SessionLocal()
     try:
         mem = Memory(
             id=str(uuid.uuid4()),
             agent_id=req.agent_id,
-            content=encrypt(req.content),
+            content=encrypt(clean_content),
             embedding=embedding,
             namespace=req.namespace,
             extra_metadata=req.metadata
@@ -96,7 +100,13 @@ def write_memory(request: Request, req: WriteRequest, current_agent: dict = Depe
 
 
 @router.get("/memory/search")
-def search_memory(agent_id: str, query: str, namespace: str, top_k: int = 5, current_agent: dict = Depends(get_current_agent)):
+def search_memory(
+    agent_id: str = Query(..., max_length=200),
+    query: str = Query(..., max_length=2_000),
+    namespace: str = Query(..., max_length=200),
+    top_k: int = Query(5, ge=1, le=50),
+    current_agent: dict = Depends(get_current_agent),
+):
     check_namespace_access(current_agent, namespace)
 
     embedding = model.encode(query).tolist()
