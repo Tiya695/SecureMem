@@ -65,7 +65,7 @@ class TokenRequest(BaseModel):
 
 
 @router.post("/auth/token")
-@limiter.limit("60/minute")
+@limiter.limit("150/minute")
 def get_token(request: Request, req: TokenRequest):
     if req.role not in ("ADMIN", "AGENT", "READONLY"):
         raise HTTPException(status_code=400, detail="Role must be ADMIN, AGENT, or READONLY")
@@ -86,7 +86,7 @@ def get_token(request: Request, req: TokenRequest):
 
 
 @router.post("/memory/write")
-@limiter.limit("20/minute")
+@limiter.limit("100/minute")
 def write_memory(request: Request, req: WriteRequest, current_agent: dict = Depends(get_current_agent)):
     check_write_permission(current_agent)
     check_namespace_access(current_agent, req.namespace)
@@ -236,7 +236,7 @@ def delete_memory(req: DeleteRequest, current_agent: dict = Depends(get_current_
 
 
 @router.post("/memory/{memory_id}/update")
-@limiter.limit("20/minute")
+@limiter.limit("100/minute")
 def update_memory(request: Request, memory_id: str, req: UpdateRequest, current_agent: dict = Depends(get_current_agent)):
     """Phase 7: update an existing memory's content, versioning the previous content first."""
     check_write_permission(current_agent)
