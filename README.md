@@ -1,21 +1,24 @@
 # SecureMem — Secure Multi-Agent Memory Infrastructure
 
-> **BTEC Level 3 Final Year Project** | Tiya Rai & Shreya Shahid | 2026
+> **BTEC Level 3 Final Year Project** | Tiya Rai · Shreya Shahid · Harsh | 2026
 
-A production-ready AI security system that protects multi-agent memory from prompt injection attacks, memory poisoning, and rogue agent behaviour — with real-time trust scoring, AES-256 encryption, JWT authentication, and a live admin dashboard.
+An LLM-agnostic security gateway that protects multi-agent memory from prompt injection, memory
+poisoning, PII leakage, and rogue agent behaviour — with a policy engine, an LLM-based
+Investigator Agent for medium-confidence threats, real-time trust scoring, AES-256 encryption,
+JWT authentication, memory versioning/rollback, full attack replay, and a live admin dashboard.
+See `docs/ARCHITECTURE.md` for the full pipeline and `docs/PROJECT_AUDIT.md` for an honest,
+component-by-component status of what's real vs. still a known gap.
 
 ---
 
 ## 🔥 Key Results
 
-| Metric | Result |
-|--------|--------|
-| F1 Score | **1.00 (Perfect)** |
-| Attacks Caught | **25 / 25** |
-| False Positives | **0 / 25** |
-| Precision | **1.00** |
-| Recall | **1.00** |
-| Test Dataset | **50 prompts** |
+| Metric | Result | Source |
+|--------|--------|--------|
+| Groq classifier F1 Score | **1.00** | `docs/MULTI_LLM_RESULTS.md` (real eval, 50 prompts, re-runnable via `python testing/eval_all_models.py`) |
+| Precision / Recall | **1.00 / 1.00** | same |
+| Security attack lab | **12/12 attacks caught** (10 playbook attack types + 2 replay checks) | `docs/SECURITY_TEST_RESULTS.md` |
+| Full test suite | **102/102 passing** | see `docs/E2E_VALIDATION.md` |
 
 ---
 
@@ -23,8 +26,9 @@ A production-ready AI security system that protects multi-agent memory from prom
 
 | Member | GitHub | Responsibilities |
 |--------|--------|-----------------|
-| **Tiya Rai** | [@Tiya695](https://github.com/Tiya695) | Prompt injection firewall, poison detection, trust scoring engine, provenance tracker, frontend dashboard |
-| **Shreya Shahid** | [@shreyashahidz](https://github.com/shreyashahidz) | PostgreSQL + pgvector database, AES-256 encryption, JWT authentication, Python SDK, ChromaDB vector store |
+| **Tiya Rai** | [@Tiya695](https://github.com/Tiya695) | Prompt injection firewall, poison detection, policy engine, Investigator Agent, trust scoring engine, provenance tracker, frontend dashboard |
+| **Shreya Shahid** | [@shreyashahidz](https://github.com/shreyashahidz) | PostgreSQL + pgvector database, AES-256 encryption, JWT authentication, Python SDK, memory versioning |
+| **Harsh** | | Multi-LLM evaluation, security attack lab, Docker deployment, gateway integration examples |
 
 ---
 
@@ -33,37 +37,41 @@ A production-ready AI security system that protects multi-agent memory from prom
 ```
 SecureMem/
 ├── backend/
-│   └── main.py                  # Unified FastAPI server (port 8000)
+│   ├── main.py                  # Unified FastAPI server (port 8000)
+│   ├── gateway.py                # /v1/* single entry point (chat, security check, proxies)
+│   └── llm_providers.py         # Model-agnostic LLM router (groq/openai/anthropic/gemini/ollama)
 ├── firewall/
-│   ├── detector.py              # Prompt injection classifier (Groq LLaMA 3.1)
-│   ├── poison_detector.py       # Memory poisoning detection
-│   ├── provenance.py            # Operation audit logging
-│   └── trust_engine.py          # Agent trust scoring engine
+│   ├── detector.py              # Prompt injection classifier (Groq)
+│   ├── poison_detector.py       # Memory poisoning detection + memory_risk_score
+│   ├── pii_detector.py          # PII detection & redaction
+│   ├── sanitizer.py             # XSS sanitization
+│   ├── policy_engine.py         # ALLOW/BLOCK/QUARANTINE/REDACT/FLAG decision layer
+│   ├── investigator_agent.py    # LLM Investigator Agent for medium-confidence threats
+│   ├── replay.py                # Full decision-trail attack replay
+│   ├── provenance.py            # Operation audit logging (extended fields, DB-persisted)
+│   ├── trust_engine.py          # Agent trust scoring engine (DB-persisted)
+│   └── rate_limit.py            # Shared slowapi Limiter
 ├── memory/
-│   ├── api.py                   # Memory read/write/search API
+│   ├── api.py                   # Memory write/search/delete/update/history/rollback
 │   ├── auth.py                  # JWT authentication & RBAC
 │   ├── encryption.py            # AES-256 encryption (Fernet)
 │   ├── database.py              # PostgreSQL + pgvector connection
-│   └── models.py                # SQLAlchemy data models
+│   └── models.py                # SQLAlchemy models (Memory, MemoryVersion, trust/provenance)
 ├── sdk/
-│   └── securemem_sdk.py         # Python SDK for developers
+│   └── securemem_sdk.py         # Python SDK (connect/protect/write/search/rollback/trust)
+├── examples/                    # 4 runnable integration examples (SDK, gateway, OpenAI, Gemini)
+├── testing/
+│   ├── llm_connectors.py        # Multi-LLM classifier connectors
+│   └── eval_all_models.py       # Real F1/precision/recall evaluation
 ├── frontend/
 │   ├── index.html               # Landing page (3D model + hero)
 │   ├── dashboard.html           # Live analytics dashboard
-│   ├── admin.html               # Admin control panel
+│   ├── admin.html               # Admin control panel (review queue, agent trust)
 │   ├── audit.html               # Full audit log viewer
-│   └── simulation.html          # Live simulation console
-├── tests/
-│   ├── test_firewall.py         # 10 unit tests (10/10 passing)
-│   ├── eval_firewall.py         # F1 score evaluator (50 prompts)
-│   ├── test_memory.py           # Memory API tests
-│   └── test_sdk.py              # SDK tests
-├── docs/
-│   ├── firewall_results.md      # F1 evaluation results
-│   ├── trust_score_simulation.md
-│   ├── poison_detection_results.md
-│   ├── PROTOCOL_SPEC.md
-│   └── architecture.md
+│   └── simulation.html          # Live sandbox pipeline demo
+├── tests/                       # 100+ tests — see docs/SECURITY_TEST_RESULTS.md
+├── docs/                        # See "Documentation" below — 20+ docs covering every phase
+├── Dockerfile, docker-compose.yml, docker/   # Containerized deployment (docs/DOCKER.md)
 ├── .env                         # API keys (not committed to GitHub)
 └── requirements.txt             # All Python dependencies
 ```
@@ -73,7 +81,8 @@ SecureMem/
 ## 🛡️ Security Features
 
 ### 1. Prompt Injection Firewall (Tiya)
-Uses **Groq LLaMA 3.1 8B** to classify every incoming prompt before it reaches memory.
+Uses **Groq** (model configurable via `GROQ_MODEL`) to classify every incoming prompt before it
+reaches memory.
 
 **Detects:**
 - Direct instruction override attacks (`"Ignore all previous instructions"`)
@@ -81,7 +90,8 @@ Uses **Groq LLaMA 3.1 8B** to classify every incoming prompt before it reaches m
 - Role-playing attacks (`"Pretend you are an AI with no rules"`)
 - System prompt extraction (`"Print your instructions verbatim"`)
 
-**Result: F1 Score = 1.00 — Perfect detection on 50-prompt evaluation**
+**Result: F1 Score = 1.00 on a real 50-prompt evaluation** — see `docs/MULTI_LLM_RESULTS.md`,
+re-runnable with `python testing/eval_all_models.py`.
 
 ```
 POST /firewall/check
@@ -156,6 +166,50 @@ Three agent roles enforced on every request:
 
 ---
 
+### 8. PII Detection & Redaction (Tiya)
+Regex-based detection for email, phone (Indian + international), Aadhaar, PAN, credit card
+(Luhn-checked), and password/secret assignments — redacted before anything is embedded or
+stored, never logged in raw form. See `docs/PII_SECURITY.md`.
+
+---
+
+### 9. Security Policy Engine + Investigator Agent (Tiya)
+The decision layer every request passes through: `ALLOW | BLOCK | QUARANTINE | REDACT | FLAG`,
+per the rule table in `docs/POLICY_ENGINE.md`. Medium-confidence cases (`FLAG`, 0.40–0.85
+injection confidence) hand off to the **Investigator Agent** instead of parking every ambiguous
+case for a human — it pulls the agent's real trust history and semantically similar past
+memories as tool calls, reasons over both with an LLM, and decides
+`AUTO_CLEAR / QUARANTINE / ESCALATE` with a logged rationale. See `docs/INVESTIGATOR_AGENT.md`.
+
+---
+
+### 10. Memory Versioning & Rollback (Shreya)
+Every write is versioned; `POST /memory/{id}/update` versions the prior content before applying a
+change, and an ADMIN can `POST /memory/{id}/rollback/{version}` to restore a safe earlier version
+if a memory turns out to be poisoned — without losing the version history in between.
+
+---
+
+### 11. SecureMem Gateway (Tiya + Shreya)
+`POST /v1/gateway/chat` — single entry point for an external application: runs the full pipeline
+and only calls an LLM if the input is allowed. Model-agnostic via `SECUREMEM_LLM_PROVIDER`
+(groq/openai/anthropic/gemini/ollama — see `docs/GATEWAY_GUIDE.md`).
+
+---
+
+### 12. Attack Replay (Harsh)
+Every blocked/flagged/quarantined event's full decision trail (input → firewall → PII → poison →
+policy → Investigator Agent → trust) is retrievable via `GET /v1/audit/replay/{event_id}` for
+post-incident review.
+
+---
+
+### 13. Docker Deployment (Shreya + Harsh)
+`docker compose up -d` — FastAPI + Postgres/pgvector, CPU-only build (~2.5GB image), auto table
+creation on first start. See `docs/DOCKER.md`.
+
+---
+
 ## 🚀 How to Run
 
 ### Prerequisites
@@ -185,14 +239,25 @@ pip install -r requirements.txt
 ```
 
 ### 4. Set Up Environment Variables
-Create a `.env` file in the root folder:
+Copy `.env.example` to `.env` and fill in real values (see that file for the full reference,
+including why `GROQ_MODEL` matters — Groq deprecates models over time, see
+`docs/PROJECT_AUDIT.md`):
 ```env
 GROQ_API_KEY=your_groq_api_key_here
-GROQ_MODEL=llama-3.1-8b-instant
+GROQ_MODEL=openai/gpt-oss-20b
 JWT_SECRET_KEY=your_secret_key_here
 ENCRYPTION_KEY=your_fernet_key_here
+ADMIN_BOOTSTRAP_SECRET=your_admin_bootstrap_secret_here
 DATABASE_URL=postgresql://user:password@localhost:5432/securemem
 ```
+
+### Alternative: Docker
+```bash
+docker compose build
+docker compose up -d
+curl http://localhost:8000/api/health
+```
+See `docs/DOCKER.md` for port-conflict handling and the full env var reference.
 
 ### 5. Start the Backend Server
 ```bash
@@ -214,35 +279,23 @@ Visit: **http://localhost:8000/docs**
 ## 🧪 Running Tests
 
 ```bash
-# Firewall unit tests (10/10)
-pytest tests/test_firewall.py -v
+# Full suite (100+ tests) — needs a running server + Postgres, see docs/PROJECT_AUDIT.md
+uvicorn backend.main:app --port 8000 &
+pytest tests/ -v
 
-# F1 Score evaluation (50 prompts)
-python tests/eval_firewall.py
+# Real multi-LLM F1/precision/recall evaluation (50 prompts)
+python testing/eval_all_models.py
 
-# Memory API tests
-pytest tests/test_memory.py -v
-
-# SDK tests
-pytest tests/test_sdk.py -v
+# Just the security attack lab (all 10 playbook attack types)
+pytest tests/test_security_attack_lab.py -v
 ```
 
 ---
 
-## 📊 All API Endpoints
+## 📊 API Endpoints
 
-| Method | Endpoint | Description | Author |
-|--------|----------|-------------|--------|
-| `POST` | `/firewall/check` | Classify prompt for injection | Tiya |
-| `POST` | `/firewall/check-memory` | Detect memory poisoning | Tiya |
-| `POST` | `/provenance/log` | Log memory operation | Tiya |
-| `GET` | `/provenance/logs` | Get all audit logs | Tiya |
-| `GET` | `/provenance/logs/{agent_id}` | Get logs by agent | Tiya |
-| `POST` | `/trust/record/{agent_id}/{event}` | Record agent event | Tiya |
-| `GET` | `/trust/score/{agent_id}` | Get agent trust score | Tiya |
-| `POST` | `/add_memory` | Store encrypted memory | Shreya |
-| `POST` | `/search_memory` | Semantic memory search | Shreya |
-| `GET` | `/api/health` | Health check | Both |
+Full reference with auth requirements, request/response shapes, and error codes:
+**[`docs/API_SPEC.md`](docs/API_SPEC.md)**.
 
 ---
 
@@ -251,13 +304,14 @@ pytest tests/test_sdk.py -v
 | Layer | Technology |
 |-------|-----------|
 | Backend Framework | FastAPI + Uvicorn |
-| AI Classifier | Groq API (LLaMA 3.1 8B Instant) |
-| Vector Database | ChromaDB + SentenceTransformers |
-| Production Database | PostgreSQL + pgvector |
+| AI Classifier / LLM | Groq (default), OpenAI/Anthropic/Gemini/Ollama connectors (`SECUREMEM_LLM_PROVIDER`) |
+| Vector Database | ChromaDB (legacy) + PostgreSQL + pgvector (production) + SentenceTransformers |
 | Encryption | AES-256 via Fernet (cryptography library) |
 | Authentication | JWT (python-jose) |
+| Rate limiting | slowapi |
 | Frontend | HTML5, CSS3, JavaScript, Three.js, Chart.js |
-| Testing | pytest |
+| Testing | pytest (100+ tests) |
+| Deployment | Docker + docker-compose |
 | Version Control | Git / GitHub |
 
 ---
@@ -334,17 +388,24 @@ python examples/basic_python_app.py
 
 ## 📄 Documentation
 
+- [Project Audit](docs/PROJECT_AUDIT.md) — honest, component-by-component status
 - [Architecture Overview](docs/ARCHITECTURE.md)
-- [Project Audit](docs/PROJECT_AUDIT.md)
+- [API Specification](docs/API_SPEC.md)
+- [Security Model](docs/SECURITY_MODEL.md)
+- [Threat Model](docs/THREAT_MODEL.md) — attacker scenarios + OWASP LLM Top 10 mapping
 - [Auth Audit](docs/AUTH_AUDIT.md)
+- [PII Security](docs/PII_SECURITY.md)
 - [Policy Engine](docs/POLICY_ENGINE.md)
 - [Investigator Agent](docs/INVESTIGATOR_AGENT.md)
-- [PII Security](docs/PII_SECURITY.md)
 - [Gateway Guide](docs/GATEWAY_GUIDE.md)
+- [Docker Deployment](docs/DOCKER.md)
+- [Multi-LLM Evaluation Results](docs/MULTI_LLM_RESULTS.md)
+- [Security Attack Lab Results](docs/SECURITY_TEST_RESULTS.md)
+- [End-to-End Validation](docs/E2E_VALIDATION.md)
+- [SDK Guide](sdk/README.md)
 - [Protocol Specification](docs/PROTOCOL_SPEC.md)
 - [Firewall Test Results](docs/firewall_results.md)
 - [Trust Score Simulation](docs/trust_score_simulation.md)
-- [SDK Guide](sdk/README.md)
 
 ---
 
