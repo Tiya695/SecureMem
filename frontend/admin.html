@@ -678,7 +678,9 @@ async function loadAgentTrustScores() {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-  renderReviews();
+  // loadReviews() populates `reviews` from real /provenance/logs data — it was defined but
+  // never called, so the review queue always rendered empty regardless of backend state.
+  loadReviews();
   loadAgentTrustScores();
   // Poll agent scores every 5s
   setInterval(loadAgentTrustScores, 5000);
