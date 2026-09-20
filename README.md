@@ -1,7 +1,5 @@
 # SecureMem — Secure Multi-Agent Memory Infrastructure
 
-> **BTEC Level 3 Final Year Project** | Tiya Rai · Shreya Shahid · Harsh | 2026
-
 An LLM-agnostic security gateway that protects multi-agent memory from prompt injection, memory
 poisoning, PII leakage, and rogue agent behaviour — with a policy engine, an LLM-based
 Investigator Agent for medium-confidence threats, real-time trust scoring, AES-256 encryption,
@@ -19,16 +17,6 @@ component-by-component status of what's real vs. still a known gap.
 | Precision / Recall | **1.00 / 1.00** | same |
 | Security attack lab | **12/12 attacks caught** (10 playbook attack types + 2 replay checks) | `docs/SECURITY_TEST_RESULTS.md` |
 | Full test suite | **102/102 passing** | see `docs/E2E_VALIDATION.md` |
-
----
-
-## 👥 Team
-
-| Member | GitHub | Responsibilities |
-|--------|--------|-----------------|
-| **Tiya Rai** | [@Tiya695](https://github.com/Tiya695) | Prompt injection firewall, poison detection, policy engine, Investigator Agent, trust scoring engine, provenance tracker, frontend dashboard |
-| **Shreya Shahid** | [@shreyashahidz](https://github.com/shreyashahidz) | PostgreSQL + pgvector database, AES-256 encryption, JWT authentication, Python SDK, memory versioning |
-| **Harsh** | | Multi-LLM evaluation, security attack lab, Docker deployment, gateway integration examples |
 
 ---
 
