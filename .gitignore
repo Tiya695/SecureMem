@@ -147,15 +147,28 @@ activemq-data/
 # SageMath parsed files
 *.sage.py
 
-# Environments
+# Environments & Secrets
 .env
+.env.*
+!.env.example
 .envrc
+*.pem
+*.key
+*.cert
+*.crt
+*.pfx
+*.p12
 .venv
 env/
 venv/
 ENV/
 env.bak/
 venv.bak/
+
+# AI Assistant configs & caches
+.claude/
+CLAUDE.md
+.claude.json
 
 # Spyder project settings
 .spyderproject

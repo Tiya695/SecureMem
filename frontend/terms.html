@@ -204,6 +204,14 @@ footer {text-align:center;padding:30px;font-size:0.75rem;color:var(--muted);bord
 
 </style>
 </head>
+<script>
+// ============================================================
+// API_BASE — change this ONE line when deploying to production
+// ============================================================
+const API_BASE = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+  ? 'http://localhost:8000'
+  : 'https://securemem-api.onrender.com'; // update this when deployed
+</script>
 <body>
 
 
@@ -305,7 +313,7 @@ if(smUser && profileWrap) {
 
 function signOut(){
   localStorage.removeItem('sm_user');
-  window.location.href='index.html';
+  window.location.href='/index.html';
 }
 
 function toggleDropdown(){

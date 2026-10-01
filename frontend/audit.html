@@ -338,6 +338,14 @@ nav{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:1
 
 </style>
 </head>
+<script>
+// ============================================================
+// API_BASE — change this ONE line when deploying to production
+// ============================================================
+const API_BASE = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+  ? 'http://localhost:8000'
+  : 'https://securemem-api.onrender.com'; // update this when deployed
+</script>
 <body>
 
 
@@ -537,7 +545,7 @@ function filterLog(f,btn){
 
 async function loadRealLogs() {
   try {
-    const r = await fetch("http://localhost:8000" + '/provenance/logs');
+    const r = await fetch(API_BASE + '/provenance/logs');
     if (r.ok) {
       const d = await r.json();
       const logs = d.logs || [];
@@ -620,7 +628,7 @@ if(smUser && profileWrap) {
   if(signinWrap) signinWrap.style.display = 'block';
   if(profileWrap) profileWrap.style.display = 'none';
 }
-function signOut(){localStorage.removeItem('sm_user');window.location.href='index.html';}
+function signOut(){localStorage.removeItem('sm_user');window.location.href='/index.html';}
 function toggleDropdown(){
   const dd=document.getElementById('profile-dropdown');
   if(dd) dd.classList.toggle('open');

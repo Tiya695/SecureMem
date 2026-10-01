@@ -351,6 +351,14 @@ nav .nav-links a:hover, nav .nav-links a.active { color: #fff; }
 
 </style>
 </head>
+<script>
+// ============================================================
+// API_BASE — change this ONE line when deploying to production
+// ============================================================
+const API_BASE = (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+  ? 'http://localhost:8000'
+  : 'https://securemem-api.onrender.com'; // update this when deployed
+</script>
 <body>
 
 <!-- Scroll Video Background -->
@@ -742,7 +750,7 @@ if(smUser && profileWrap) {
 
 function signOut(){
   localStorage.removeItem('sm_user');
-  window.location.href='index.html';
+  window.location.href='/index.html';
 }
 
 function toggleDropdown(){
